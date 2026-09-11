@@ -1,1 +1,0 @@
-# Crafterina-All-in-one-App
