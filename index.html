@@ -1,0 +1,4187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#AEB99A">
+<title>Craft Crafterina</title>
+
+<!-- =========================================================
+     EXTERNAL LIBRARIES USED BY SHIPPING LABEL / INVOICE
+========================================================= -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+
+/* =========================================================
+   MAIN APPLICATION
+========================================================= */
+
+:root{
+  --sage:#AEB99A; --sage-dark:#7D8B69; --sage-deep:#657354;
+  --cream:#F7F5ED; --cream-light:#FBFAF5; --white:#FFFFFF;
+  --text:#4D5443; --text-light:#777D6D; --line:#DEE3D4;
+  --danger:#B66B63; --shadow:0 6px 24px rgba(70,80,55,.09);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--cream);
+  color:var(--text)
+}
+
+button,input{font:inherit}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header{
+  background:var(--sage);
+  padding:16px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0
+}
+
+.logo{
+  width:58px;
+  height:58px;
+  flex:0 0 58px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#fff;
+  border:3px solid rgba(255,255,255,.9);
+  box-shadow:0 2px 8px rgba(0,0,0,.08)
+}
+
+.brand-text{min-width:0}
+
+.brand-title{
+  color:#fff;
+  font-size:21px;
+  line-height:1.2;
+  font-weight:750
+}
+
+.brand-subtitle{
+  color:rgba(255,255,255,.9);
+  font-size:13px;
+  margin-top:3px
+}
+
+.reset-btn{
+  flex-shrink:0;
+  border:0;
+  background:#fff;
+  color:var(--sage-deep);
+  padding:14px 22px;
+  min-width:100px;
+  min-height:48px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:750
+}
+
+/* =========================================================
+   FOUR MAIN TABS
+========================================================= */
+
+.main-tab-nav{
+  width:min(1120px,100%);
+  margin:18px auto 0;
+  padding:0 16px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px
+}
+
+.main-tab-btn{
+  border:0;
+  border-radius:12px;
+  background:#E8EBE1;
+  color:var(--sage-deep);
+  padding:17px 10px;
+  min-height:64px;
+  cursor:pointer;
+  font-size:17px;
+  font-weight:800;
+  box-shadow:var(--shadow)
+}
+
+.main-tab-btn.active{
+  background:var(--sage-dark);
+  color:#fff
+}
+
+.main-tab-view{display:none}
+.main-tab-view.active{display:block}
+
+/* =========================================================
+   PRICE LIST
+========================================================= */
+
+.price-container{
+  width:min(1120px,100%);
+  margin:0 auto;
+  padding:24px 16px 40px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:22px;
+  align-items:start
+}
+
+.price-card{
+  min-width:0;
+  background:var(--white);
+  border:1px solid rgba(222,227,212,.7);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:var(--shadow)
+}
+
+.price-card-title{
+  color:var(--sage-deep);
+  font-size:20px;
+  font-weight:750;
+  margin-bottom:20px
+}
+
+.price-section-title{
+  color:var(--text);
+  font-size:14px;
+  font-weight:750;
+  margin:22px 0 10px
+}
+
+.price-label{
+  display:block;
+  color:var(--text);
+  font-size:12px;
+  font-weight:650;
+  margin-bottom:6px
+}
+
+.price-input{
+  width:100%;
+  min-width:0;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--cream-light);
+  color:var(--text);
+  padding:10px 11px;
+  outline:none
+}
+
+.price-input:focus{
+  border-color:var(--sage-dark);
+  box-shadow:0 0 0 3px rgba(125,139,105,.12)
+}
+
+.price-input::placeholder{color:#A2A69A}
+
+.item-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px
+}
+
+.item-row-price{
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--cream-light);
+  padding:11px
+}
+
+.item-main-price{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 105px 36px;
+  gap:8px;
+  align-items:center
+}
+
+.item-name-wrap-price{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px
+}
+
+.emoji-price{
+  width:25px;
+  flex:0 0 25px;
+  text-align:center;
+  font-size:18px
+}
+
+.name-input-price{min-width:0}
+
+.price-input-price{text-align:right}
+
+.delete-btn-price,
+.remove-chocolate-btn-price{
+  width:36px;
+  height:38px;
+  border:0;
+  border-radius:8px;
+  background:#F0F1ED;
+  color:#8A8F82;
+  cursor:pointer;
+  font-size:20px;
+  line-height:1
+}
+
+.delete-btn-price:hover,
+.remove-chocolate-btn-price:hover{
+  background:#F3E8E6;
+  color:var(--danger)
+}
+
+.chocolate-submenu-price{
+  margin-top:10px;
+  padding:12px;
+  background:#EEF1E7;
+  border:1px solid #E0E5D7;
+  border-radius:10px
+}
+
+.chocolate-subtitle-price{
+  color:var(--sage-deep);
+  font-size:11px;
+  font-weight:750;
+  margin-bottom:9px;
+  text-transform:uppercase;
+  letter-spacing:.3px
+}
+
+.chocolate-entry-price{margin-bottom:10px}
+.chocolate-entry-price:last-of-type{margin-bottom:0}
+
+.chocolate-fields-price{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 82px 105px 36px;
+  gap:8px;
+  align-items:end
+}
+
+.field-label-price{
+  font-size:10px;
+  color:var(--text-light);
+  margin-bottom:4px
+}
+
+.qty-input-price{text-align:center}
+.unit-price-input-price{text-align:right}
+
+.add-chocolate-btn-price,
+.add-btn-price{
+  width:100%;
+  border:1px dashed var(--sage-dark);
+  border-radius:8px;
+  background:#F5F7F1;
+  color:var(--sage-deep);
+  cursor:pointer;
+  font-weight:700
+}
+
+.add-chocolate-btn-price{
+  margin-top:10px;
+  padding:9px;
+  font-size:12px
+}
+
+.add-btn-price{
+  margin-top:10px;
+  padding:11px;
+  border-radius:9px;
+  font-size:13px
+}
+
+.add-chocolate-btn-price:hover,
+.add-btn-price:hover{
+  background:#EEF2E8
+}
+
+.delivery-section-price{margin-top:22px}
+
+.delivery-row-price{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 105px;
+  gap:10px;
+  align-items:center
+}
+
+.delivery-row-price label{
+  margin:0;
+  font-size:13px;
+  font-weight:600
+}
+
+.delivery-input-price{text-align:right}
+
+.preview-box-price{
+  width:100%;
+  min-height:360px;
+  padding:17px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#F4F5EF;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  font-size:14px;
+  line-height:1.6
+}
+
+.total-box-price{
+  margin-top:14px;
+  padding:15px 16px;
+  background:var(--sage);
+  color:#fff;
+  border-radius:11px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px
+}
+
+.total-label-price{
+  font-size:14px;
+  font-weight:650
+}
+
+.total-amount-price{
+  font-size:20px;
+  font-weight:800
+}
+
+.copy-btn-price{
+  width:100%;
+  margin-top:12px;
+  border:0;
+  border-radius:10px;
+  background:var(--sage-dark);
+  color:#fff;
+  padding:12px;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:750
+}
+
+.copy-btn-price:hover{background:var(--sage-deep)}
+
+/* =========================================================
+   GIFT IDEAS
+========================================================= */
+
+.gift-ideas-card{
+  width:min(1120px,100%);
+  margin:24px auto 40px;
+  padding:22px;
+  background:var(--white);
+  border:1px solid rgba(222,227,212,.7);
+  border-radius:16px;
+  box-shadow:var(--shadow)
+}
+
+.gift-selects{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px
+}
+
+.gift-label{
+  display:block;
+  color:var(--text);
+  font-size:12px;
+  font-weight:650;
+  margin-bottom:6px
+}
+
+.gift-select{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--cream-light);
+  color:var(--text);
+  padding:12px 11px;
+  outline:none
+}
+
+.gift-list-box{
+  margin-top:18px;
+  width:100%;
+  min-height:360px;
+  padding:17px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#F4F5EF;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  font-size:14px;
+  line-height:1.7
+}
+
+.gift-copy-btn{
+  width:100%;
+  margin-top:12px;
+  border:0;
+  border-radius:10px;
+  background:var(--sage-dark);
+  color:#fff;
+  padding:13px;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:750
+}
+
+.gift-copy-btn:hover{background:var(--sage-deep)}
+
+/* =========================================================
+   SHIPPING LABEL APP
+========================================================= */
+
+.shipping-app{
+  background-color:#f4f4f9;
+  color:#000;
+  padding:20px;
+  min-height:100vh;
+  font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif
+}
+
+.shipping-controls{
+  max-width:600px;
+  margin:0 auto 30px auto;
+  background:white;
+  padding:20px;
+  border-radius:8px;
+  box-shadow:0 4px 6px rgba(0,0,0,.1)
+}
+
+.shipping-controls h2{
+  margin-top:0;
+  text-align:center
+}
+
+.shipping-input-group{
+  margin-bottom:15px
+}
+
+.shipping-input-group label{
+  display:block;
+  font-weight:bold;
+  margin-bottom:5px
+}
+
+.shipping-textarea{
+  width:100%;
+  height:120px;
+  padding:10px;
+  box-sizing:border-box;
+  border:1px solid #ccc;
+  border-radius:4px;
+  resize:vertical;
+  font-family:inherit;
+  font-size:16px;
+  vertical-align:top;
+  text-align:left
+}
+
+.shipping-print-btn{
+  display:block;
+  width:100%;
+  padding:12px;
+  background-color:#000;
+  color:white;
+  border:none;
+  border-radius:4px;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer
+}
+
+.shipping-page-preview{
+  width:200mm;
+  height:290mm;
+  margin:0 auto;
+  background:white;
+  box-shadow:0 0 10px rgba(0,0,0,.2);
+  display:flex;
+  flex-direction:column;
+  box-sizing:border-box
+}
+
+.shipping-label-half{
+  height:50%;
+  width:100%;
+  padding:15mm;
+  box-sizing:border-box;
+  border-bottom:3px dashed #000
+}
+
+.shipping-label-half:last-child{
+  border-bottom:none
+}
+
+.shipping-label-inner{
+  border:3px solid #000;
+  border-radius:12px;
+  height:100%;
+  padding:20px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between
+}
+
+.shipping-address-container{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  flex-grow:1
+}
+
+.shipping-sender-info,
+.shipping-recipient-info{
+  width:50%;
+  border:2px solid #555;
+  border-radius:8px;
+  padding:15px;
+  box-sizing:border-box
+}
+
+.shipping-section-title{
+  font-size:16px;
+  font-weight:bold;
+  color:#000;
+  margin:0 0 10px 0;
+  border-bottom:2px solid #000;
+  padding-bottom:5px;
+  text-transform:uppercase
+}
+
+.shipping-sender-content-wrapper{
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+
+.shipping-address-text{
+  font-size:20px;
+  font-weight:bold;
+  line-height:1.3
+}
+
+.shipping-recipient-info .shipping-address-text{
+  white-space:pre-wrap
+}
+
+.shipping-css-logo{
+  width:80px;
+  height:80px;
+  border:2px solid #000;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px;
+  box-sizing:border-box;
+  flex-shrink:0;
+  margin-left:10px
+}
+
+.shipping-css-logo-inner{
+  width:100%;
+  height:100%;
+  border:1px solid #000;
+  border-radius:50%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box
+}
+
+.shipping-logo-text-script{
+  font-family:'Dancing Script','Snell Roundhand',cursive;
+  font-size:18px;
+  font-weight:bold;
+  line-height:.9;
+  color:#000
+}
+
+.shipping-logo-text-serif{
+  font-family:'Times New Roman',Times,serif;
+  font-size:7px;
+  text-transform:uppercase;
+  text-align:center;
+  margin-top:4px;
+  line-height:1.1;
+  color:#000;
+  font-weight:bold
+}
+
+.shipping-warning-text{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+  font-family:Arial,Helvetica,sans-serif;
+  text-transform:uppercase;
+  margin-top:15px;
+  padding:10px 20px;
+  border:4px solid #000;
+  border-radius:8px;
+  height:52mm;
+  box-sizing:border-box
+}
+
+.shipping-warning-text-content{text-align:center}
+
+.shipping-warning-line1{
+  font-size:26px;
+  font-weight:bold;
+  white-space:nowrap
+}
+
+.shipping-warning-line2{
+  font-size:34px;
+  font-weight:bold
+}
+
+.shipping-icon-wrapper{
+  width:60px;
+  height:60px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center
+}
+
+.shipping-icon-wrapper svg{
+  display:block
+}
+
+/* =========================================================
+   INVOICE APP
+========================================================= */
+
+.invoice-app{
+  background:#eef1ec;
+  min-height:100vh;
+  color:#333;
+  font-family:'Lora',serif;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+  padding-top:1px
+}
+
+.invoice-app *{
+  box-sizing:border-box
+}
+
+.invoice-app .invoice-container{
+  max-width:1050px;
+  margin:0 auto;
+  padding:15px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  align-items:start
+}
+
+.invoice-admin-card{
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 4px 15px rgba(0,0,0,.05)
+}
+
+.invoice-preview-wrapper{
+  background:#fff;
+  padding:10px;
+  border-radius:12px;
+  box-shadow:0 4px 15px rgba(0,0,0,.05);
+  width:100%
+}
+
+.invoice-app h2,
+.invoice-app h3{
+  font-family:'Cinzel',serif;
+  color:#4A5B42;
+  margin-top:0
+}
+
+.invoice-form-group{
+  margin-bottom:12px
+}
+
+.invoice-app label{
+  display:block;
+  font-size:.85rem;
+  margin-bottom:4px;
+  color:#4A5B42;
+  font-weight:600
+}
+
+.invoice-input{
+  width:100%;
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-family:inherit;
+  font-size:16px
+}
+
+.invoice-item-row{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 1fr auto;
+  gap:6px;
+  margin-bottom:8px;
+  align-items:center
+}
+
+.invoice-btn{
+  background:#6B7F61;
+  color:white;
+  border:none;
+  padding:12px 15px;
+  border-radius:6px;
+  cursor:pointer;
+  font-family:'Cinzel',serif;
+  font-weight:600;
+  font-size:16px;
+  width:100%;
+  margin-top:10px;
+  touch-action:manipulation
+}
+
+.invoice-btn:hover{background:#4A5B42}
+.invoice-btn-secondary{background:#889e7e}
+
+.invoice-btn-danger{
+  background:#c94c4c;
+  padding:8px 12px;
+  width:auto;
+  margin:0;
+  font-size:16px
+}
+
+.invoice-profit-box{
+  background:#EBF0E8;
+  border:1px solid #6B7F61;
+  padding:15px;
+  border-radius:8px;
+  margin-top:20px
+}
+
+.invoice-profit-box h4{
+  margin:0 0 8px 0;
+  color:#4A5B42;
+  font-family:'Cinzel'
+}
+
+.invoice-profit-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:.9rem;
+  margin-bottom:4px
+}
+
+.invoice-profit-total{
+  font-weight:bold;
+  color:#B38E46;
+  font-size:1.1rem;
+  border-top:1px solid #ccc;
+  padding-top:4px
+}
+
+.invoice-all-time-stats{
+  background:#fff;
+  border:2px dashed #6B7F61;
+  padding:12px;
+  border-radius:8px;
+  margin-bottom:15px;
+  display:none
+}
+
+.invoice-all-time-stats h4{
+  margin:0 0 8px 0;
+  color:#4A5B42;
+  font-family:'Cinzel'
+}
+
+.invoice-history-box{
+  margin-top:25px;
+  border-top:2px solid #D3D8CE;
+  padding-top:15px
+}
+
+.invoice-history-list{
+  margin-top:10px
+}
+
+.invoice-history-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#F9F8F3;
+  border:1px solid #D3D8CE;
+  padding:10px;
+  border-radius:6px;
+  margin-bottom:6px;
+  font-size:.85rem
+}
+
+.invoice-history-actions{
+  display:flex;
+  gap:6px
+}
+
+.invoice-btn-sm{
+  padding:6px 10px;
+  font-size:.85rem;
+  border-radius:4px;
+  border:none;
+  cursor:pointer
+}
+
+.invoice-btn-load{
+  background:#6B7F61;
+  color:white
+}
+
+.invoice-btn-del{
+  background:#c94c4c;
+  color:white
+}
+
+#invoice-card{
+  background-color:#F9F8F3;
+  border:2px solid #6B7F61;
+  border-radius:16px;
+  padding:24px 20px;
+  background-image:radial-gradient(#D3D8CE 1px,transparent 0);
+  background-size:12px 12px;
+  width:100%;
+  max-width:100%;
+  margin:0 auto
+}
+
+.invoice-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:6px;
+  border-bottom:2px solid #6B7F61;
+  padding-bottom:10px
+}
+
+.invoice-logo-container{
+  width:50px;
+  height:50px;
+  min-width:50px;
+  border-radius:50%;
+  overflow:hidden;
+  border:2px solid #6B7F61;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background-color:#A9B3A2
+}
+
+.invoice-logo-container img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.invoice-brand-details{
+  flex:1;
+  margin-left:6px
+}
+
+.invoice-brand-title{
+  font-family:'Cinzel',serif;
+  font-size:clamp(.9rem,3.2vw,1.25rem);
+  font-weight:700;
+  color:#4A5B42;
+  white-space:nowrap;
+  line-height:1.1
+}
+
+.invoice-brand-subtitle{
+  font-size:.65rem;
+  letter-spacing:.5px;
+  color:#6B7F61;
+  text-transform:uppercase;
+  margin-top:2px
+}
+
+.invoice-meta{
+  text-align:right;
+  font-size:.8rem;
+  color:#4A5B42
+}
+
+.invoice-meta-title{
+  font-family:'Cinzel',serif;
+  font-size:clamp(1rem,3.8vw,1.3rem);
+  font-weight:800;
+  letter-spacing:1px;
+  color:#4A5B42
+}
+
+.invoice-bill-to{
+  margin:12px 0;
+  font-size:.9rem;
+  color:#4A5B42;
+  border-bottom:1px dashed #6B7F61;
+  padding-bottom:6px
+}
+
+.invoice-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:12px
+}
+
+.invoice-table th{
+  font-family:'Cinzel',serif;
+  text-align:left;
+  font-size:.8rem;
+  color:#6B7F61;
+  border-bottom:1px solid #D3D8CE;
+  padding:6px 0
+}
+
+.invoice-table td{
+  padding:6px 0;
+  font-size:.85rem
+}
+
+.invoice-summary-section{
+  border-top:1px solid #6B7F61;
+  padding-top:8px
+}
+
+.invoice-summary-row{
+  display:flex;
+  justify-content:space-between;
+  padding:4px 0;
+  font-size:.85rem
+}
+
+.invoice-row-bold{
+  font-weight:bold;
+  font-size:.95rem;
+  color:#4A5B42
+}
+
+.invoice-row-balance{
+  font-weight:bold;
+  font-size:1.05rem;
+  color:#B38E46
+}
+
+.invoice-footer-note{
+  text-align:center;
+  margin-top:20px;
+  font-style:italic;
+  color:#4A5B42;
+  font-size:.8rem
+}
+
+.invoice-modal-overlay{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,.85);
+  z-index:1000;
+  justify-content:center;
+  align-items:center;
+  padding:15px
+}
+
+.invoice-modal-content{
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  max-width:500px;
+  width:100%;
+  max-height:90vh;
+  overflow-y:auto;
+  text-align:center
+}
+
+.invoice-modal-content img{
+  width:100%;
+  height:auto;
+  border-radius:8px;
+  box-shadow:0 4px 10px rgba(0,0,0,.15);
+  margin-bottom:15px
+}
+
+.invoice-modal-hint{
+  font-size:.85rem;
+  color:#666;
+  margin-bottom:12px
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:850px){
+
+  .price-container{
+    grid-template-columns:1fr
+  }
+
+  .invoice-app .invoice-container{
+    grid-template-columns:1fr;
+    padding:10px 8px
+  }
+
+  .invoice-preview-wrapper.invoice-hidden-mobile{
+    display:none!important
+  }
+
+  .invoice-admin-card.invoice-hidden-mobile{
+    display:none!important
+  }
+}
+
+@media(max-width:700px){
+
+  .main-tab-nav{
+    grid-template-columns:repeat(2,1fr);
+    gap:8px
+  }
+
+  .main-tab-btn{
+    min-height:58px;
+    font-size:15px;
+    padding:13px 7px
+  }
+
+  .shipping-page-preview{
+    transform-origin:top left;
+  }
+}
+
+@media(max-width:560px){
+
+  .header{
+    padding:13px 14px
+  }
+
+  .logo{
+    width:50px;
+    height:50px;
+    flex-basis:50px
+  }
+
+  .brand-title{font-size:18px}
+  .brand-subtitle{font-size:12px}
+
+  .reset-btn{
+    padding:13px 18px;
+    min-width:96px;
+    min-height:46px;
+    font-size:14px
+  }
+
+  .price-container{
+    padding:15px 11px 30px;
+    gap:15px
+  }
+
+  .price-card{
+    padding:16px;
+    border-radius:14px
+  }
+
+  .price-card-title{
+    font-size:18px;
+    margin-bottom:17px
+  }
+
+  .item-main-price{
+    grid-template-columns:minmax(0,1fr) 82px 35px;
+    gap:6px
+  }
+
+  .chocolate-fields-price{
+    grid-template-columns:minmax(0,1fr) 65px 88px 35px;
+    gap:6px
+  }
+
+  .delivery-row-price{
+    grid-template-columns:minmax(0,1fr) 90px;
+    gap:8px
+  }
+
+  .delivery-row-price label{font-size:12px}
+
+  .preview-box-price{
+    min-height:300px;
+    font-size:13px
+  }
+
+  .gift-ideas-card{
+    margin:15px auto 30px;
+    padding:16px;
+    border-radius:14px
+  }
+
+  .gift-selects{
+    grid-template-columns:1fr
+  }
+
+  .gift-list-box{
+    min-height:300px;
+    font-size:13px
+  }
+
+  .shipping-app{
+    padding:10px
+  }
+
+  .shipping-page-preview{
+    width:200mm;
+    height:290mm
+  }
+
+  .invoice-item-row{
+    grid-template-columns:2fr 1fr 1fr 1fr auto
+  }
+}
+
+@media(max-width:380px){
+
+  .brand-subtitle{display:none}
+  .brand-title{font-size:17px}
+
+  .reset-btn{
+    padding:12px 15px;
+    min-width:90px;
+    min-height:44px
+  }
+
+  .item-main-price{
+    grid-template-columns:minmax(0,1fr) 75px 34px
+  }
+
+  .chocolate-fields-price{
+    grid-template-columns:minmax(0,1fr) 58px 78px 34px
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     MAIN HEADER
+========================================================= -->
+
+<header class="header">
+
+  <div class="brand">
+
+    <img
+      class="logo"
+      alt="Craft Crafterina"
+      src="data:image/jpeg;base64,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"
+    >
+
+    <div class="brand-text">
+      <div class="brand-title">Craft Crafterina</div>
+    </div>
+
+  </div>
+
+  <button id="resetBtn" class="reset-btn" type="button" onclick="resetApp()">
+    Reset
+  </button>
+
+</header>
+
+<!-- =========================================================
+     FOUR MAIN TABS
+========================================================= -->
+
+<nav class="main-tab-nav" aria-label="Main tabs">
+
+  <button
+    id="mainPriceTab"
+    class="main-tab-btn active"
+    type="button"
+    onclick="showMainTab('priceList')"
+  >
+    💰 Price List
+  </button>
+
+  <button
+    id="mainGiftTab"
+    class="main-tab-btn"
+    type="button"
+    onclick="showMainTab('giftIdeas')"
+  >
+    🎁 Gift Ideas
+  </button>
+
+  <button
+    id="mainShippingTab"
+    class="main-tab-btn"
+    type="button"
+    onclick="showMainTab('shipping')"
+  >
+    🏷️ Shipping Label
+  </button>
+
+  <button
+    id="mainInvoiceTab"
+    class="main-tab-btn"
+    type="button"
+    onclick="showMainTab('invoice')"
+  >
+    🧾 Invoice
+  </button>
+
+</nav>
+
+<!-- =========================================================
+     PRICE LIST TAB
+========================================================= -->
+
+<div id="mainPriceListView" class="main-tab-view active">
+
+<main class="price-container">
+
+<section class="price-card">
+
+  <div class="price-card-title">
+    Build Your Hamper
+  </div>
+
+  <label class="price-label" for="hamperName">
+    Hamper Name
+  </label>
+
+  <input
+    id="hamperName"
+    class="price-input"
+    type="text"
+    placeholder="Enter hamper name"
+    oninput="updatePreview()"
+  >
+
+  <div class="price-section-title">
+    Gift Items
+  </div>
+
+  <div id="items" class="item-list"></div>
+
+  <button
+    class="add-btn-price"
+    type="button"
+    onclick="addItem()"
+  >
+    + Add Item
+  </button>
+
+  <div class="price-section-title delivery-section-price">
+    Doorstep Delivery
+  </div>
+
+  <div class="delivery-row-price">
+
+    <label>
+      🚚 Delivery
+    </label>
+
+    <input
+      id="delivery"
+      class="price-input delivery-input-price"
+      type="number"
+      inputmode="decimal"
+      min="0"
+      value="260"
+      oninput="updatePreview()"
+    >
+
+  </div>
+
+</section>
+
+<section class="price-card">
+
+  <div class="price-card-title">
+    Customer Preview
+  </div>
+
+  <div id="preview" class="preview-box-price"></div>
+
+  <div class="total-box-price">
+
+    <span class="total-label-price">
+      Total
+    </span>
+
+    <span id="totalAmount" class="total-amount-price">
+      ₹0
+    </span>
+
+  </div>
+
+  <button
+    class="copy-btn-price"
+    type="button"
+    onclick="copyPreview()"
+  >
+    Copy Price List
+  </button>
+
+</section>
+
+</main>
+
+</div>
+
+<!-- =========================================================
+     GIFT IDEAS TAB
+========================================================= -->
+
+<section id="mainGiftIdeasView" class="main-tab-view">
+
+  <div class="gift-ideas-card">
+
+    <div class="price-card-title">
+      🎁 Gift Ideas
+    </div>
+
+    <div class="gift-selects">
+
+      <div>
+
+        <label
+          class="gift-label"
+          for="giftOccasion"
+        >
+          Occasion
+        </label>
+
+        <select
+          id="giftOccasion"
+          class="gift-select"
+          onchange="updateGiftRecipientOptions()"
+        >
+          <option value="birthday">
+            Birthday
+          </option>
+
+          <option value="wedding">
+            Wedding Anniversary
+          </option>
+        </select>
+
+      </div>
+
+      <div>
+
+        <label
+          class="gift-label"
+          for="giftRecipient"
+        >
+          Who is it for?
+        </label>
+
+        <select
+          id="giftRecipient"
+          class="gift-select"
+          onchange="updateGiftIdeas()"
+        ></select>
+
+      </div>
+
+    </div>
+
+    <div
+      id="giftList"
+      class="gift-list-box"
+    ></div>
+
+    <button
+      id="giftCopyBtn"
+      class="gift-copy-btn"
+      type="button"
+      onclick="copyGiftIdeas()"
+    >
+      📋 Copy List
+    </button>
+
+  </div>
+
+</section>
+
+<!-- =========================================================
+     SHIPPING LABEL TAB
+========================================================= -->
+
+<section id="mainShippingView" class="main-tab-view">
+
+<div class="shipping-app">
+
+  <div class="shipping-controls">
+
+    <h2>
+      Shipping Label Generator
+    </h2>
+
+    <div class="shipping-input-group">
+
+      <label for="shippingTo1">
+        Top Label - Customer Address:
+      </label>
+
+      <textarea
+        id="shippingTo1"
+        class="shipping-textarea"
+        placeholder="Enter recipient name and address..."
+      ></textarea>
+
+    </div>
+
+    <div class="shipping-input-group">
+
+      <label for="shippingTo2">
+        Bottom Label - Customer Address (Optional):
+      </label>
+
+      <textarea
+        id="shippingTo2"
+        class="shipping-textarea"
+        placeholder="Leave blank to save paper, or enter a second order here..."
+      ></textarea>
+
+    </div>
+
+    <button
+      class="shipping-print-btn"
+      onclick="generateShippingPDF()"
+    >
+      Download Clean PDF
+    </button>
+
+  </div>
+
+  <div
+    class="shipping-page-preview"
+    id="shipping-label-page"
+  >
+
+    <!-- TOP LABEL -->
+
+    <div class="shipping-label-half">
+
+      <div class="shipping-label-inner">
+
+        <div class="shipping-address-container">
+
+          <div class="shipping-sender-info">
+
+            <h3 class="shipping-section-title">
+              FROM
+            </h3>
+
+            <div class="shipping-sender-content-wrapper">
+
+              <div class="shipping-address-text">
+
+                Hacy<br>
+                Craft_crafterina<br>
+                Chalissery P.O, Palakkad<br>
+                Kerala PIN: 679536<br>
+                Ph: 9400756312
+
+              </div>
+
+              <div class="shipping-css-logo">
+
+                <div class="shipping-css-logo-inner">
+
+                  <div class="shipping-logo-text-script">
+                    Craft
+                  </div>
+
+                  <div class="shipping-logo-text-script">
+                    crafterina
+                  </div>
+
+                  <div class="shipping-logo-text-serif">
+                    HANDMADE<br>
+                    CREATIONS
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="shipping-recipient-info">
+
+            <h3 class="shipping-section-title">
+              SHIP TO
+            </h3>
+
+            <div
+              class="shipping-address-text"
+              id="shippingDisplayTo1"
+            ></div>
+
+          </div>
+
+        </div>
+
+        <div class="shipping-warning-text">
+
+          <div class="shipping-icon-wrapper">
+
+            <svg
+              width="60"
+              height="60"
+              viewBox="0 0 100 100"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M 25 10 L 45 10 L 38 28 L 52 40 L 47 55 C 25 55 25 30 25 10 Z" />
+              <path d="M 55 10 L 75 10 C 75 30 75 55 53 55 L 58 40 L 44 28 Z" />
+              <path d="M 47 55 L 53 55 L 53 85 L 70 90 L 70 95 L 30 95 L 30 90 L 47 85 Z" />
+            </svg>
+
+          </div>
+
+          <div class="shipping-warning-text-content">
+
+            <div class="shipping-warning-line1">
+              HANDLE WITH CARE
+            </div>
+
+            <div class="shipping-warning-line2">
+              FRAGILE
+            </div>
+
+          </div>
+
+          <div class="shipping-icon-wrapper">
+
+            <svg
+              width="60"
+              height="60"
+              viewBox="0 0 100 100"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M 25 10 L 45 10 L 38 28 L 52 40 L 47 55 C 25 55 25 30 25 10 Z" />
+              <path d="M 55 10 L 75 10 C 75 30 75 55 53 55 L 58 40 L 44 28 Z" />
+              <path d="M 47 55 L 53 55 L 53 85 L 70 90 L 70 95 L 30 95 L 30 90 L 47 85 Z" />
+            </svg>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- BOTTOM LABEL -->
+
+    <div class="shipping-label-half">
+
+      <div class="shipping-label-inner">
+
+        <div class="shipping-address-container">
+
+          <div class="shipping-sender-info">
+
+            <h3 class="shipping-section-title">
+              FROM
+            </h3>
+
+            <div class="shipping-sender-content-wrapper">
+
+              <div class="shipping-address-text">
+
+                Hacy<br>
+                Craft_crafterina<br>
+                Chalissery P.O, Palakkad<br>
+                Kerala PIN: 679536<br>
+                Ph: 9400756312
+
+              </div>
+
+              <div class="shipping-css-logo">
+
+                <div class="shipping-css-logo-inner">
+
+                  <div class="shipping-logo-text-script">
+                    Craft
+                  </div>
+
+                  <div class="shipping-logo-text-script">
+                    crafterina
+                  </div>
+
+                  <div class="shipping-logo-text-serif">
+                    HANDMADE<br>
+                    CREATIONS
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="shipping-recipient-info">
+
+            <h3 class="shipping-section-title">
+              SHIP TO
+            </h3>
+
+            <div
+              class="shipping-address-text"
+              id="shippingDisplayTo2"
+            ></div>
+
+          </div>
+
+        </div>
+
+        <div class="shipping-warning-text">
+
+          <div class="shipping-icon-wrapper">
+
+            <svg
+              width="60"
+              height="60"
+              viewBox="0 0 100 100"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M 25 10 L 45 10 L 38 28 L 52 40 L 47 55 C 25 55 25 30 25 10 Z" />
+              <path d="M 55 10 L 75 10 C 75 30 75 55 53 55 L 58 40 L 44 28 Z" />
+              <path d="M 47 55 L 53 55 L 53 85 L 70 90 L 70 95 L 30 95 L 30 90 L 47 85 Z" />
+            </svg>
+
+          </div>
+
+          <div class="shipping-warning-text-content">
+
+            <div class="shipping-warning-line1">
+              HANDLE WITH CARE
+            </div>
+
+            <div class="shipping-warning-line2">
+              FRAGILE
+            </div>
+
+          </div>
+
+          <div class="shipping-icon-wrapper">
+
+            <svg
+              width="60"
+              height="60"
+              viewBox="0 0 100 100"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M 25 10 L 45 10 L 38 28 L 52 40 L 47 55 C 25 55 25 30 25 10 Z" />
+              <path d="M 55 10 L 75 10 C 75 30 75 55 53 55 L 58 40 L 44 28 Z" />
+              <path d="M 47 55 L 53 55 L 53 85 L 70 90 L 70 95 L 30 95 L 30 90 L 47 85 Z" />
+            </svg>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     INVOICE TAB
+========================================================= -->
+
+<section id="mainInvoiceView" class="main-tab-view">
+
+<div class="invoice-app">
+
+  <div class="invoice-container">
+
+    <!-- ADMIN CONTROLS -->
+
+    <div
+      class="invoice-admin-card"
+      id="invoiceCardControls"
+    >
+
+      <h2>
+        Invoice Controls
+      </h2>
+
+      <div class="invoice-form-group">
+
+        <label>
+          Invoice Number
+        </label>
+
+        <input
+          type="number"
+          inputmode="numeric"
+          id="invNo"
+          class="invoice-input"
+          placeholder="e.g. 0001"
+          oninput="updateInvoice()"
+        >
+
+      </div>
+
+      <div class="invoice-form-group">
+
+        <label>
+          Customer Name & Phone
+        </label>
+
+        <input
+          type="text"
+          id="custDetails"
+          class="invoice-input"
+          placeholder="e.g. Name (Phone Number)"
+          oninput="updateInvoice()"
+        >
+
+      </div>
+
+      <h3>
+        Items
+      </h3>
+
+      <div id="items-container"></div>
+
+      <button
+        class="invoice-btn invoice-btn-secondary"
+        style="margin-bottom:15px"
+        onclick="addInvoiceItemRow()"
+      >
+        + Add Item
+      </button>
+
+      <div class="invoice-form-group">
+
+        <label>
+          Service Charge (₹)
+        </label>
+
+        <input
+          type="number"
+          inputmode="decimal"
+          id="serviceCharge"
+          class="invoice-input"
+          placeholder="0"
+          oninput="calculateInvoice()"
+        >
+
+      </div>
+
+      <div class="invoice-form-group">
+
+        <label>
+          Advance Paid (₹)
+        </label>
+
+        <input
+          type="number"
+          inputmode="decimal"
+          id="advancePaid"
+          class="invoice-input"
+          placeholder="0"
+          oninput="calculateInvoice()"
+        >
+
+      </div>
+
+      <!-- PRIVATE PROFIT -->
+
+      <div class="invoice-profit-box">
+
+        <h4>
+          🔒 Private Profit Summary
+        </h4>
+
+        <div class="invoice-profit-row">
+          <span>Total Selling Price:</span>
+          <span id="adminRevenue">₹0</span>
+        </div>
+
+        <div class="invoice-profit-row">
+          <span>Total Cost Price:</span>
+          <span id="adminCost">₹0</span>
+        </div>
+
+        <div class="invoice-profit-row invoice-profit-total">
+          <span>Your Net Profit:</span>
+          <span id="adminProfit">₹0</span>
+        </div>
+
+      </div>
+
+      <button
+        class="invoice-btn"
+        id="genBtn"
+        onclick="generateInvoiceImage()"
+      >
+        Generate Invoice Image/PDF
+      </button>
+
+      <!-- HISTORY -->
+
+      <div class="invoice-history-box">
+
+        <h3>
+          Saved Invoices History
+        </h3>
+
+        <div
+          id="all-time-stats"
+          class="invoice-all-time-stats"
+        ></div>
+
+        <div
+          id="history-list"
+          class="invoice-history-list"
+        >
+          <p style="font-size:.85rem;color:#777;">
+            No saved invoices yet.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- INVOICE PREVIEW -->
+
+    <div
+      class="invoice-preview-wrapper"
+      id="invoiceCardPreview"
+    >
+
+      <div id="invoice-card">
+
+        <div class="invoice-header">
+
+          <div class="invoice-logo-container">
+            <img
+              src="logo.png"
+              alt="Logo"
+            >
+          </div>
+
+          <div class="invoice-brand-details">
+
+            <div class="invoice-brand-title">
+              Craft_Crafterina
+            </div>
+
+            <div class="invoice-brand-subtitle">
+              Handmade Creations
+            </div>
+
+          </div>
+
+          <div class="invoice-meta">
+
+            <div class="invoice-meta-title">
+              INVOICE
+            </div>
+
+            <div id="prevInvNo">
+              CRF-----
+            </div>
+
+            <div id="prevDate">
+              --/--/----
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          class="invoice-bill-to"
+          id="prevBillTo"
+        >
+          Bill to: ------------
+        </div>
+
+        <table class="invoice-table">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                ITEM
+              </th>
+
+              <th style="text-align:center;">
+                QTY
+              </th>
+
+              <th style="text-align:right;">
+                PRICE
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody id="prevItems">
+
+            <tr>
+              <td
+                colspan="3"
+                style="text-align:center;color:#888;padding:15px 0;"
+              >
+                No items added yet
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+        <div class="invoice-summary-section">
+
+          <div class="invoice-summary-row">
+            <span>Subtotal</span>
+            <span id="prevSubtotal">₹0</span>
+          </div>
+
+          <div class="invoice-summary-row">
+            <span>Service charge</span>
+            <span id="prevService">₹0</span>
+          </div>
+
+          <div
+            class="invoice-summary-row invoice-row-bold"
+            style="border-top:1px solid #6B7F61;padding-top:4px;"
+          >
+            <span>Total</span>
+            <span id="prevTotal">₹0</span>
+          </div>
+
+          <div class="invoice-summary-row">
+            <span>Advance paid</span>
+            <span id="prevAdvance">- ₹0</span>
+          </div>
+
+          <div
+            class="invoice-summary-row invoice-row-balance"
+            style="border-top:1px solid #6B7F61;padding-top:4px;"
+          >
+            <span>Balance due</span>
+            <span id="prevBalance">₹0</span>
+          </div>
+
+        </div>
+
+        <div class="invoice-footer-note">
+          ❦<br>
+          Thank you for your order!
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     INVOICE IMAGE MODAL
+========================================================= -->
+
+<div
+  class="invoice-modal-overlay"
+  id="pdfModal"
+>
+
+  <div class="invoice-modal-content">
+
+    <h3>
+      Invoice Ready!
+    </h3>
+
+    <p class="invoice-modal-hint">
+      Tap & hold image to Save to Photos or Copy & send directly via WhatsApp.
+    </p>
+
+    <img
+      id="modalImg"
+      src=""
+      alt="Invoice"
+    >
+
+    <button
+      class="invoice-btn invoice-btn-secondary"
+      onclick="closeInvoiceModal()"
+    >
+      Close
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+
+/* =========================================================
+   MAIN TAB NAVIGATION
+========================================================= */
+
+function showMainTab(tab){
+
+  const views = {
+    priceList: document.getElementById("mainPriceListView"),
+    giftIdeas: document.getElementById("mainGiftIdeasView"),
+    shipping: document.getElementById("mainShippingView"),
+    invoice: document.getElementById("mainInvoiceView")
+  };
+
+  const buttons = {
+    priceList: document.getElementById("mainPriceTab"),
+    giftIdeas: document.getElementById("mainGiftTab"),
+    shipping: document.getElementById("mainShippingTab"),
+    invoice: document.getElementById("mainInvoiceTab")
+  };
+
+  Object.keys(views).forEach(key=>{
+    views[key].classList.toggle(
+      "active",
+      key === tab
+    );
+
+    buttons[key].classList.toggle(
+      "active",
+      key === tab
+    );
+  });
+
+  /* Show Reset only on Price List */
+  document.getElementById("resetBtn").style.display =
+    tab === "priceList" ? "" : "none";
+
+}
+
+
+/* =========================================================
+   PRICE LIST
+========================================================= */
+
+const PREPARATION_CHARGES = [
+  {emoji:"🎀",name:"Wrapping & Decoration",amount:120},
+  {emoji:"🧺",name:"Hamper Arrangement",amount:100},
+  {emoji:"🛒",name:"Items Sourcing",amount:80},
+  {emoji:"🪄",name:"Personalization",amount:80}
+];
+
+const FIXED_PREPARATION_TOTAL =
+  PREPARATION_CHARGES.reduce(
+    (sum,charge)=>sum+charge.amount,
+    0
+  );
+
+const defaultItems = [
+  {name:"Mini Photo Frame",price:""},
+  {name:"Box",price:""},
+  {
+    name:"Chocolates",
+    chocolate:true,
+    chocolates:[
+      {
+        brand:"",
+        qty:1,
+        unitPrice:""
+      }
+    ]
+  },
+  {name:"Nail Polish",price:""},
+  {name:"Flowers",price:""},
+  {name:"Wish Card",price:""}
+];
+
+let itemCounter = 0;
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+const EMOJI_RULES = [
+
+  ["panda","🐼"],["koala","🐨"],["dog","🐶"],["puppy","🐶"],
+  ["doggy","🐶"],["cat","🐱"],["kitten","🐱"],["kitty","🐱"],
+  ["mouse","🐭"],["rat","🐀"],["hamster","🐹"],["rabbit","🐰"],
+  ["bunny","🐰"],["fox","🦊"],["bear","🐻"],["polar bear","🐻‍❄️"],
+  ["tiger","🐯"],["lion","🦁"],["cow","🐮"],["pig","🐷"],
+  ["frog","🐸"],["monkey","🐒"],["gorilla","🦍"],["chicken","🐔"],
+  ["rooster","🐓"],["penguin","🐧"],["bird","🐦"],["eagle","🦅"],
+  ["duck","🦆"],["swan","🦢"],["owl","🦉"],["unicorn","🦄"],
+  ["bee","🐝"],["butterfly","🦋"],["ladybug","🐞"],["ladybird","🐞"],
+  ["ant","🐜"],["spider","🕷️"],["snake","🐍"],["turtle","🐢"],
+  ["tortoise","🐢"],["lizard","🦎"],["dinosaur","🦖"],
+  ["whale","🐋"],["dolphin","🐬"],["shark","🦈"],["octopus","🐙"],
+  ["fish","🐟"],["crab","🦀"],["lobster","🦞"],["shrimp","🦐"],
+  ["snail","🐌"],["horse","🐴"],["deer","🦌"],["elephant","🐘"],
+  ["giraffe","🦒"],["zebra","🦓"],["camel","🐫"],["kangaroo","🦘"],
+
+  ["apple","🍎"],["pear","🍐"],["orange","🍊"],["lemon","🍋"],
+  ["banana","🍌"],["watermelon","🍉"],["grape","🍇"],
+  ["strawberry","🍓"],["melon","🍈"],["cherry","🍒"],
+  ["peach","🍑"],["mango","🥭"],["pineapple","🍍"],
+  ["coconut","🥥"],["kiwi","🥝"],["avocado","🥑"],["tomato","🍅"],
+  ["carrot","🥕"],["corn","🌽"],["potato","🥔"],["pizza","🍕"],
+  ["burger","🍔"],["hamburger","🍔"],["fries","🍟"],
+  ["french fries","🍟"],["hot dog","🌭"],["hotdog","🌭"],
+  ["taco","🌮"],["burrito","🌯"],["sushi","🍣"],["ramen","🍜"],
+  ["noodles","🍜"],["rice","🍚"],["bread","🍞"],["croissant","🥐"],
+  ["cheese","🧀"],["egg","🥚"],["chocolate","🍫"],
+  ["chocolates","🍫"],["candy","🍬"],["sweets","🍬"],
+  ["sweet","🍬"],["toffee","🍬"],["lollipop","🍭"],["cake","🎂"],
+  ["birthday cake","🎂"],["cupcake","🧁"],["cookie","🍪"],
+  ["cookies","🍪"],["biscuit","🍪"],["biscuits","🍪"],
+  ["donut","🍩"],["doughnut","🍩"],["ice cream","🍦"],
+  ["icecream","🍦"],["coffee","☕"],["cappuccino","☕"],
+  ["latte","☕"],["espresso","☕"],["tea","🍵"],["chai","🍵"],
+  ["juice","🧃"],["milk","🥛"],["water","💧"],["beer","🍺"],
+  ["wine","🍷"],["cake","🍰"],
+
+  ["flower","🌸"],["flowers","🌸"],["rose","🌹"],["roses","🌹"],
+  ["sunflower","🌻"],["tulip","🌷"],["tulips","🌷"],["lotus","🪷"],
+  ["bouquet","💐"],["tree","🌳"],["palm tree","🌴"],
+  ["plant","🪴"],["plants","🪴"],["succulent","🪴"],
+  ["cactus","🌵"],["leaf","🍃"],["leaves","🍃"],["herb","🌿"],
+  ["grass","🌱"],
+
+  ["ring","💍"],["engagement ring","💍"],["necklace","📿"],
+  ["bracelet","📿"],["jewellery","💎"],["jewelry","💎"],
+  ["jewel","💎"],["jewels","💎"],["diamond","💎"],["nail","💅"],
+  ["nails","💅"],["nail polish","💅"],["manicure","💅"],
+  ["lipstick","💄"],["makeup","💄"],["cosmetics","💄"],
+  ["perfume","🧴"],["fragrance","🧴"],["cologne","🧴"],
+  ["soap","🧼"],["mirror","🪞"],["dress","👗"],["shirt","👕"],
+  ["t-shirt","👕"],["tshirt","👕"],["saree","🥻"],["sari","🥻"],
+  ["shoe","👟"],["shoes","👟"],["sneaker","👟"],
+  ["sneakers","👟"],["trainer","👟"],["trainers","👟"],
+  ["sandal","👡"],["sandals","👡"],["bag","👜"],["handbag","👜"],
+  ["purse","👛"],["wallet","👛"],["watch","⌚"],
+  ["wristwatch","⌚"],["glasses","👓"],["spectacles","👓"],
+  ["sunglasses","🕶️"],
+
+  ["phone","📱"],["mobile","📱"],["mobile phone","📱"],
+  ["cellphone","📱"],["smartphone","📱"],["iphone","📱"],
+  ["android","📱"],["laptop","💻"],["computer","💻"],
+  ["tablet","📱"],["ipad","📱"],["camera","📷"],
+  ["headphone","🎧"],["headphones","🎧"],["earbuds","🎧"],
+  ["airpods","🎧"],["speaker","🔊"],["television","📺"],
+  ["tv","📺"],["charger","🔌"],["plug","🔌"],["battery","🔋"],
+  ["keyboard","⌨️"],["mouse pad","🖱️"],
+
+  ["box","🎁"],["gift box","🎁"],["gift","🎁"],["gifts","🎁"],
+  ["present","🎁"],["presents","🎁"],["hamper","🎁"],
+  ["teddy","🧸"],["teddy bear","🧸"],["doll","🪆"],
+  ["balloon","🎈"],["balloons","🎈"],["candle","🕯️"],
+  ["candles","🕯️"],["book","📖"],["books","📖"],["novel","📖"],
+  ["notebook","📓"],["diary","📓"],["pen","🖊️"],["pencil","✏️"],
+  ["card","💌"],["wish card","💌"],["greeting card","💌"],
+  ["letter","✉️"],["envelope","✉️"],["photo","🖼️"],
+  ["photograph","🖼️"],["picture","🖼️"],
+  ["photo frame","🖼️"],["picture frame","🖼️"],["frame","🖼️"],
+
+  ["house","🏠"],["home","🏠"],["homes","🏠"],
+  ["residence","🏠"],["dwelling","🏠"],["villa","🏠"],
+  ["cottage","🏡"],["bungalow","🏠"],["apartment","🏢"],
+  ["flat","🏢"],["building","🏢"],["office","🏢"],
+  ["school","🏫"],["hospital","🏥"],["hotel","🏨"],
+  ["church","⛪"],["mosque","🕌"],["temple","🛕"],
+  ["castle","🏰"],
+
+  ["car","🚗"],["cars","🚗"],["taxi","🚕"],["bus","🚌"],
+  ["train","🚆"],["bike","🚲"],["bicycle","🚲"],["cycle","🚲"],
+  ["motorcycle","🏍️"],["motorbike","🏍️"],["scooter","🛵"],
+  ["airplane","✈️"],["plane","✈️"],["flight","✈️"],
+  ["rocket","🚀"],["suitcase","🧳"],["luggage","🧳"],
+  ["delivery","🚚"],["truck","🚚"],["lorry","🚚"],
+  ["package","📦"],["parcel","📦"],
+
+  ["heart","❤️"],["love","❤️"],["hearts","❤️"],["kiss","💋"],
+  ["hug","🤗"],["hugging","🤗"],["birthday","🎂"],
+  ["anniversary","❤️"],["party","🎉"],["celebration","🎉"],
+  ["celebrations","🎉"],["christmas","🎄"],["xmas","🎄"],
+  ["diwali","🪔"],["diya","🪔"],["deepam","🪔"],
+
+  ["key","🔑"],["keys","🔑"],["lock","🔒"],["scissors","✂️"],
+  ["hammer","🔨"],["money","💰"],["cash","💰"],["rupee","💰"],
+  ["rupees","💰"],["coin","🪙"],["coins","🪙"],["star","⭐"],
+  ["stars","⭐"],["rainbow","🌈"],["sun","☀️"],["sunny","☀️"],
+  ["sunshine","☀️"],["moon","🌙"],["cloud","☁️"],["clouds","☁️"],
+  ["rain","🌧️"],["rainy","🌧️"],["umbrella","☂️"],["fire","🔥"],
+  ["flame","🔥"],["flames","🔥"],["snow","❄️"],
+  ["snowflake","❄️"],["lightning","⚡"],["electricity","⚡"],
+  ["music","🎵"],["song","🎵"],["microphone","🎤"],
+  ["guitar","🎸"],["football","⚽"],["soccer","⚽"],
+  ["basketball","🏀"],["cricket","🏏"],["tennis","🎾"],
+  ["medal","🏅"],["trophy","🏆"]
+];
+
+function normalizeEmojiText(value){
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[_\-\/]+/g," ")
+    .replace(/[^\p{L}\p{N} ]+/gu," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+const EMOJI_ALIASES = {
+  residence:"house",
+  dwelling:"house",
+  villa:"house",
+  cottage:"house",
+  bungalow:"house",
+  present:"gift",
+  presents:"gift",
+  giftbox:"gift box",
+  package:"package",
+  parcel:"package",
+  cellphone:"phone",
+  smartphone:"phone",
+  iphone:"phone",
+  android:"phone",
+  spectacles:"glasses",
+  sneakers:"shoe",
+  trainers:"shoe",
+  jewellery:"jewelry",
+  jewel:"diamond",
+  jewels:"diamond",
+  sweet:"candy",
+  sweets:"candy",
+  toffee:"candy",
+  biscuit:"cookie",
+  biscuits:"cookie",
+  donut:"doughnut",
+  soda:"drink",
+  coke:"drink",
+  cola:"drink",
+  photograph:"photo",
+  picture:"photo",
+  note:"notebook",
+  diary:"notebook",
+  lorry:"truck",
+  pickup:"truck",
+  motorbike:"motorcycle",
+  cycle:"bicycle",
+  plane:"airplane",
+  flight:"airplane",
+  cash:"money",
+  sunshine:"sun",
+  sunny:"sun",
+  rainy:"rain",
+  celebration:"party",
+  celebrations:"party",
+  birthday:"cake",
+  xmas:"christmas",
+  deepam:"diya",
+  makeup:"cosmetics",
+  fragrance:"perfume",
+  television:"tv",
+  headphones:"headphone",
+  earbuds:"headphone",
+  airpods:"headphone",
+  plants:"plant",
+  ocean:"water",
+  sea:"water",
+  beach:"🏖️",
+  mountain:"🏔️",
+  mountains:"🏔️"
+};
+
+function getEmoji(name){
+
+  const value=normalizeEmojiText(name);
+
+  if(!value)return"🎁";
+
+  if(/\b(chocolates?|chocolate bar)\b/.test(value))return"🍫";
+  if(/\b(panda|pandas)\b/.test(value))return"🐼";
+  if(/\b(house|home|residence|dwelling|villa|cottage|bungalow)\b/.test(value))return"🏠";
+  if(/\b(flowers?|flower)\b/.test(value))return"🌸";
+  if(/\b(roses?|rose)\b/.test(value))return"🌹";
+  if(/\b(nail polish|nails?|manicure)\b/.test(value))return"💅";
+  if(/\b(wish card|greeting card|card)\b/.test(value))return"💌";
+  if(/\b(photo frame|picture frame|photograph|photo|picture)\b/.test(value))return"🖼️";
+  if(/\b(teddy bear|teddy)\b/.test(value))return"🧸";
+  if(/\b(gift box|gift|present|hamper|box)\b/.test(value))return"🎁";
+
+  const sortedRules=[...EMOJI_RULES]
+    .sort((a,b)=>b[0].length-a[0].length);
+
+  for(const[term,emoji]of sortedRules){
+
+    const normalizedTerm=normalizeEmojiText(term);
+
+    if(
+      value===normalizedTerm||
+      value.includes(normalizedTerm)
+    ){
+      return emoji;
+    }
+
+  }
+
+  const words=value.split(" ");
+
+  for(const word of words){
+
+    if(word.length<2)continue;
+
+    const alias=EMOJI_ALIASES[word];
+
+    if(alias){
+
+      if(alias.startsWith("emoji:")){
+        return alias.replace("emoji:","");
+      }
+
+      const aliasNormalized=normalizeEmojiText(alias);
+
+      for(const[term,emoji]of sortedRules){
+
+        if(normalizeEmojiText(term)===aliasNormalized){
+          return emoji;
+        }
+
+      }
+
+    }
+
+  }
+
+  for(const word of words){
+
+    if(word.length<2)continue;
+
+    for(const[term,emoji]of sortedRules){
+
+      const normalizedTerm=normalizeEmojiText(term);
+
+      if(
+        normalizedTerm===word||
+        normalizedTerm.startsWith(word)
+      ){
+        return emoji;
+      }
+
+    }
+
+  }
+
+  return"🎁";
+}
+
+
+/* =========================================================
+   CHOCOLATE SUBMENU
+========================================================= */
+
+function createChocolateSubmenu(item={}){
+
+  const chocolates=
+    item.chocolates&&item.chocolates.length
+      ?item.chocolates
+      :[{
+        brand:item.brand||"",
+        qty:item.qty||1,
+        unitPrice:item.unitPrice??item.price??""
+      }];
+
+  return`
+  <div class="chocolate-submenu-price">
+
+    <div class="chocolate-subtitle-price">
+      Chocolate Details
+    </div>
+
+    <div class="chocolate-entries-price">
+
+      ${chocolates.map(chocolate=>`
+
+        <div class="chocolate-entry-price">
+
+          <div class="chocolate-fields-price">
+
+            <div>
+
+              <div class="field-label-price">
+                Brand / Type
+              </div>
+
+              <input
+                class="price-input brand-input-price"
+                type="text"
+                value="${escapeHtml(chocolate.brand||"")}"
+                placeholder="e.g. Dairy Milk"
+                oninput="updatePreview()"
+              >
+
+            </div>
+
+            <div>
+
+              <div class="field-label-price">
+                Quantity
+              </div>
+
+              <input
+                class="price-input qty-input-price"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                value="${Number(chocolate.qty)>0?Number(chocolate.qty):1}"
+                oninput="updatePreview()"
+              >
+
+            </div>
+
+            <div>
+
+              <div class="field-label-price">
+                Unit Price
+              </div>
+
+              <input
+                class="price-input unit-price-input-price"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                value="${escapeHtml(chocolate.unitPrice??"")}"
+                placeholder="₹"
+                oninput="updatePreview()"
+              >
+
+            </div>
+
+            <button
+              class="remove-chocolate-btn-price"
+              type="button"
+              aria-label="Remove chocolate"
+              onclick="removeChocolate(this)"
+            >×</button>
+
+          </div>
+
+        </div>
+
+      `).join("")}
+
+    </div>
+
+    <button
+      class="add-chocolate-btn-price"
+      type="button"
+      onclick="addChocolate(this)"
+    >
+      + Add Chocolate
+    </button>
+
+  </div>`;
+}
+
+function addChocolate(button){
+
+  const submenu=button.closest(".chocolate-submenu-price");
+
+  if(!submenu)return;
+
+  const entries=submenu.querySelector(
+    ".chocolate-entries-price"
+  );
+
+  const entry=document.createElement("div");
+
+  entry.className="chocolate-entry-price";
+
+  entry.innerHTML=`
+
+    <div class="chocolate-fields-price">
+
+      <div>
+
+        <div class="field-label-price">
+          Brand / Type
+        </div>
+
+        <input
+          class="price-input brand-input-price"
+          type="text"
+          value=""
+          placeholder="e.g. Dairy Milk"
+          oninput="updatePreview()"
+        >
+
+      </div>
+
+      <div>
+
+        <div class="field-label-price">
+          Quantity
+        </div>
+
+        <input
+          class="price-input qty-input-price"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          value="1"
+          oninput="updatePreview()"
+        >
+
+      </div>
+
+      <div>
+
+        <div class="field-label-price">
+          Unit Price
+        </div>
+
+        <input
+          class="price-input unit-price-input-price"
+          type="number"
+          inputmode="decimal"
+          min="0"
+          value=""
+          placeholder="₹"
+          oninput="updatePreview()"
+        >
+
+      </div>
+
+      <button
+        class="remove-chocolate-btn-price"
+        type="button"
+        aria-label="Remove chocolate"
+        onclick="removeChocolate(this)"
+      >×</button>
+
+    </div>
+  `;
+
+  entries.appendChild(entry);
+
+  updatePreview();
+}
+
+function removeChocolate(button){
+
+  const submenu=
+    button.closest(".chocolate-submenu-price");
+
+  const entry=
+    button.closest(".chocolate-entry-price");
+
+  if(!submenu||!entry)return;
+
+  const entries=
+    submenu.querySelectorAll(".chocolate-entry-price");
+
+  if(entries.length<=1){
+
+    entry.querySelector(".brand-input-price").value="";
+    entry.querySelector(".qty-input-price").value=1;
+    entry.querySelector(".unit-price-input-price").value="";
+
+  }else{
+
+    entry.remove();
+
+  }
+
+  updatePreview();
+}
+
+
+/* =========================================================
+   PRICE ITEMS
+========================================================= */
+
+function addItem(data=null){
+
+  const item=data||{
+    name:"",
+    price:"",
+    chocolate:false,
+    chocolates:[
+      {
+        brand:"",
+        qty:1,
+        unitPrice:""
+      }
+    ]
+  };
+
+  const id=itemCounter++;
+
+  const row=document.createElement("div");
+
+  row.className="item-row-price";
+  row.dataset.id=id;
+
+  const isChocolate=
+    item.chocolate===true||
+    String(item.name||"")
+      .toLowerCase()
+      .includes("chocolate");
+
+  row.innerHTML=`
+
+    <div class="item-main-price">
+
+      <div class="item-name-wrap-price">
+
+        <span class="emoji-price">
+          ${getEmoji(item.name)}
+        </span>
+
+        <input
+          class="price-input name-input-price"
+          type="text"
+          value="${escapeHtml(item.name)}"
+          placeholder="Item name"
+          oninput="itemChanged(${id})"
+        >
+
+      </div>
+
+      ${
+        isChocolate
+        ?""
+        :`
+          <input
+            class="price-input price-input-price"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            value="${escapeHtml(item.price)}"
+            placeholder="Price"
+            oninput="updatePreview()"
+          >
+        `
+      }
+
+      <button
+        class="delete-btn-price"
+        type="button"
+        aria-label="Remove item"
+        onclick="removeItem(${id})"
+      >×</button>
+
+    </div>
+
+    ${
+      isChocolate
+      ?createChocolateSubmenu(item)
+      :""
+    }
+
+  `;
+
+  document.getElementById("items")
+    .appendChild(row);
+
+  updatePreview();
+}
+
+function itemChanged(id){
+
+  const row=document.querySelector(
+    `.item-row-price[data-id="${id}"]`
+  );
+
+  if(!row)return;
+
+  const nameInput=row.querySelector(
+    ".name-input-price"
+  );
+
+  const name=nameInput.value.trim();
+
+  const isChocolate=
+    name.toLowerCase().includes("chocolate");
+
+  const submenu=row.querySelector(
+    ".chocolate-submenu-price"
+  );
+
+  const main=row.querySelector(
+    ".item-main-price"
+  );
+
+  if(isChocolate&&!submenu){
+
+    const price=
+      row.querySelector(".price-input-price")
+        ?.value||"";
+
+    const wrapper=document.createElement("div");
+
+    wrapper.innerHTML=createChocolateSubmenu({
+      chocolates:[
+        {
+          brand:"",
+          qty:1,
+          unitPrice:price
+        }
+      ]
+    });
+
+    row.appendChild(
+      wrapper.firstElementChild
+    );
+
+    row.querySelector(
+      ".price-input-price"
+    )?.remove();
+
+  }
+
+  if(!isChocolate&&submenu){
+
+    const unitPrice=
+      row.querySelector(
+        ".unit-price-input-price"
+      )?.value||"";
+
+    submenu.remove();
+
+    const priceInput=
+      document.createElement("input");
+
+    priceInput.className=
+      "price-input price-input-price";
+
+    priceInput.type="number";
+    priceInput.inputMode="decimal";
+    priceInput.min="0";
+    priceInput.value=unitPrice;
+    priceInput.placeholder="Price";
+
+    priceInput.addEventListener(
+      "input",
+      updatePreview
+    );
+
+    main.insertBefore(
+      priceInput,
+      row.querySelector(".delete-btn-price")
+    );
+
+  }
+
+  const emoji=row.querySelector(
+    ".emoji-price"
+  );
+
+  if(emoji){
+    emoji.textContent=getEmoji(name);
+  }
+
+  updatePreview();
+}
+
+function removeItem(id){
+
+  const row=document.querySelector(
+    `.item-row-price[data-id="${id}"]`
+  );
+
+  if(row)row.remove();
+
+  updatePreview();
+}
+
+
+/* =========================================================
+   READ PRICE ITEMS
+========================================================= */
+
+function getItems(){
+
+  const rows=document.querySelectorAll(
+    ".item-row-price"
+  );
+
+  const items=[];
+
+  rows.forEach(row=>{
+
+    const nameInput=row.querySelector(
+      ".name-input-price"
+    );
+
+    if(!nameInput)return;
+
+    const name=nameInput.value.trim();
+
+    if(!name)return;
+
+    const submenu=row.querySelector(
+      ".chocolate-submenu-price"
+    );
+
+    if(submenu){
+
+      submenu
+        .querySelectorAll(".chocolate-entry-price")
+        .forEach(entry=>{
+
+          const brand=
+            entry.querySelector(
+              ".brand-input-price"
+            )?.value.trim()||"";
+
+          const qtyValue=Number(
+            entry.querySelector(
+              ".qty-input-price"
+            )?.value
+          );
+
+          const qty=
+            qtyValue>0?qtyValue:1;
+
+          const rawUnitPrice=
+            entry.querySelector(
+              ".unit-price-input-price"
+            )?.value||"";
+
+          const hasPrice=
+            String(rawUnitPrice).trim()!==""&&
+            Number(rawUnitPrice)>0;
+
+          const unitPrice=
+            hasPrice?Number(rawUnitPrice):0;
+
+          items.push({
+            name,
+            chocolate:true,
+            brand,
+            qty,
+            unitPrice,
+            total:qty*unitPrice,
+            pricePending:!hasPrice
+          });
+
+        });
+
+    }else{
+
+      const rawPrice=
+        row.querySelector(
+          ".price-input-price"
+        )?.value||"";
+
+      const hasPrice=
+        String(rawPrice).trim()!==""&&
+        Number(rawPrice)>0;
+
+      const price=
+        hasPrice?Number(rawPrice):0;
+
+      items.push({
+        name,
+        chocolate:false,
+        price,
+        total:price,
+        pricePending:!hasPrice
+      });
+
+    }
+
+  });
+
+  return items;
+}
+
+function formatMoney(value){
+  return Number(value||0)
+    .toLocaleString("en-IN");
+}
+
+
+/* =========================================================
+   PRICE PREVIEW
+========================================================= */
+
+function updatePreview(){
+
+  const hamperName=
+    document.getElementById(
+      "hamperName"
+    ).value.trim()||
+    "Gift Hamper";
+
+  const items=getItems();
+
+  let giftItemsTotal=0;
+
+  let message=
+    `🎁 *${hamperName}*\n\n`;
+
+  message+=`*Gift Items*\n`;
+
+  if(items.length===0){
+
+    message+=`No items added\n`;
+
+  }else{
+
+    items.forEach(item=>{
+
+      giftItemsTotal+=item.total;
+
+      if(item.chocolate){
+
+        let line=`🍫`;
+
+        if(item.brand){
+          line+=` ${item.brand}`;
+        }
+
+        if(item.pricePending){
+
+          line+=` × ${item.qty} — Pending`;
+
+          message+=`*${line}*\n`;
+
+        }else{
+
+          line+=
+            ` × ${item.qty} — ₹${formatMoney(item.total)}`;
+
+          message+=line+"\n";
+
+        }
+
+      }else{
+
+        if(item.pricePending){
+
+          const line=
+            `${getEmoji(item.name)} `+
+            `${item.name} — Pending`;
+
+          message+=`*${line}*\n`;
+
+        }else{
+
+          message+=
+            `${getEmoji(item.name)} `+
+            `${item.name} — ₹${formatMoney(item.total)}\n`;
+
+        }
+
+      }
+
+    });
+
+  }
+
+  message+=
+    `\n*Gift Items Total — ₹${formatMoney(giftItemsTotal)}*\n\n`;
+
+  message+=`✨ *Gift Preparation*\n`;
+
+  PREPARATION_CHARGES.forEach(charge=>{
+
+    message+=
+      `${charge.emoji} ${charge.name} — ₹${formatMoney(charge.amount)}\n`;
+
+  });
+
+  message+=
+    `\n🧰 Gift Preparation Total — ₹${formatMoney(FIXED_PREPARATION_TOTAL)}\n`;
+
+  const delivery=
+    Number(
+      document.getElementById("delivery").value
+    )||0;
+
+  message+=
+    `🚚 Doorstep Delivery — ₹${formatMoney(delivery)}\n`;
+
+  const total=
+    giftItemsTotal+
+    FIXED_PREPARATION_TOTAL+
+    delivery;
+
+  message+=
+    `\n━━━━━━━━━━━━━━━━\n`;
+
+  message+=
+    `💰 *TOTAL — ₹${formatMoney(total)}*`;
+
+  document.getElementById("preview")
+    .textContent=message;
+
+  document.getElementById("totalAmount")
+    .textContent=`₹${formatMoney(total)}`;
+}
+
+
+/* =========================================================
+   PRICE COPY
+========================================================= */
+
+async function copyPreview(){
+
+  const text=
+    document.getElementById(
+      "preview"
+    ).textContent;
+
+  try{
+
+    await navigator.clipboard.writeText(text);
+
+  }catch(error){
+
+    const temp=
+      document.createElement("textarea");
+
+    temp.value=text;
+    temp.style.position="fixed";
+    temp.style.opacity="0";
+
+    document.body.appendChild(temp);
+
+    temp.select();
+
+    document.execCommand("copy");
+
+    temp.remove();
+
+  }
+
+  const button=
+    document.querySelector(
+      ".copy-btn-price"
+    );
+
+  const original=button.textContent;
+
+  button.textContent="✓ Copied!";
+
+  setTimeout(
+    ()=>button.textContent=original,
+    1500
+  );
+}
+
+
+/* =========================================================
+   GIFT IDEAS
+========================================================= */
+
+const GIFT_IDEAS={
+
+  wedding:{
+
+    him:[
+      "Dress",
+      "Perfume",
+      "Chocolates",
+      "Watch",
+      "Photo Frames",
+      "Wish Card",
+      "Belt",
+      "Cap",
+      "Car Accessories",
+      "Office Stationery"
+    ],
+
+    her:[
+      "Dress",
+      "Footwear",
+      "Jewellery",
+      "Perfume",
+      "Chocolates",
+      "Photo Frames",
+      "Cosmetics",
+      "Period Massager",
+      "Wish Cards"
+    ]
+
+  },
+
+  birthday:{
+
+    boy:[
+      "Frames",
+      "Lamp",
+      "Stationery Gift",
+      "Toys",
+      "Watch",
+      "Chocolate",
+      "Ring",
+      "Ring Album",
+      "Keychain",
+      "School Stationery",
+      "Dress"
+    ],
+
+    girl:[
+      "Frames",
+      "Light Toy / Lamp",
+      "Soft Toy",
+      "Cards",
+      "Stationery Gift",
+      "Cosmetics",
+      "Chocolates",
+      "Ring",
+      "Ring Album",
+      "Hair Accessories",
+      "Keychain",
+      "School Stationery",
+      "Dress"
+    ],
+
+    him:[
+      "Watch",
+      "Sunglasses",
+      "Perfume",
+      "Gadgets",
+      "Keychain",
+      "Books",
+      "Mug",
+      "Water Bottle",
+      "Polaroids",
+      "Photo Frame",
+      "Dress",
+      "Wallet Set",
+      "Cap",
+      "Wish Card",
+      "Chocolates",
+      "Hot Wheels",
+      "Ring"
+    ],
+
+    her:[
+      "Dress",
+      "Chocolates",
+      "Lipstick",
+      "Eyeliner",
+      "Perfume",
+      "Face Mask",
+      "Lip Balm",
+      "Jewellery",
+      "Hair Accessories",
+      "Keychain",
+      "Books",
+      "Mug",
+      "Water Bottle",
+      "Journal",
+      "Mascara",
+      "Lamp",
+      "Polaroids",
+      "Photo Frames",
+      "Toys",
+      "Wish Cards",
+      "Ring"
+    ]
+
+  }
+
+};
+
+function getGiftEmoji(item,recipient){
+
+  const value=normalizeEmojiText(item);
+
+  if(value==="cap")return"🧢";
+  if(value==="keychain")return"🔗";
+  if(value==="mug")return"☕";
+  if(value==="hot wheels")return"🚗";
+  if(value==="eyeliner")return"👁️";
+  if(value==="face mask")return"👧";
+  if(value==="toys")return"🧸";
+  if(value==="mascara")return"👀";
+  if(value==="lamp")return"🛋️";
+  if(value==="polaroids")return"🎞️";
+  if(value==="journal")return"📓";
+  if(value==="ring album")return"🏞️";
+  if(value==="hair accessories")return"🎀";
+
+  if(
+    value==="dress"&&
+    (recipient==="boy"||recipient==="him")
+  ){
+    return"👖";
+  }
+
+  return getEmoji(item);
+}
+
+function updateGiftRecipientOptions(){
+
+  const occasion=
+    document.getElementById(
+      "giftOccasion"
+    ).value;
+
+  const recipient=
+    document.getElementById(
+      "giftRecipient"
+    );
+
+  const previous=recipient.value;
+
+  if(occasion==="wedding"){
+
+    recipient.innerHTML=`
+      <option value="him">👨 Him</option>
+      <option value="her">👩 Her</option>
+    `;
+
+  }else{
+
+    recipient.innerHTML=`
+      <option value="him">👨 Him</option>
+      <option value="her">👩 Her</option>
+      <option value="boy">👦 Boy</option>
+      <option value="girl">👧 Girl</option>
+    `;
+
+  }
+
+  if(
+    [...recipient.options]
+      .some(option=>option.value===previous)
+  ){
+    recipient.value=previous;
+  }
+
+  updateGiftIdeas();
+}
+
+function updateGiftIdeas(){
+
+  const occasion=
+    document.getElementById(
+      "giftOccasion"
+    ).value;
+
+  const recipient=
+    document.getElementById(
+      "giftRecipient"
+    ).value;
+
+  const recipientLabel=
+    recipient==="him"
+      ?"Him"
+      :recipient==="her"
+        ?"Her"
+        :recipient==="boy"
+          ?"Boy"
+          :"Girl";
+
+  const occasionLabel=
+    occasion==="wedding"
+      ?"Wedding Anniversary"
+      :"Birthday";
+
+  const ideas=
+    (
+      GIFT_IDEAS[occasion]&&
+      GIFT_IDEAS[occasion][recipient]
+    )||[];
+
+  let message=
+    `🎁 *${occasionLabel} Gift Ideas – For ${recipientLabel}*\n\n`;
+
+  message+=
+    ideas
+      .map(
+        item=>
+          `${getGiftEmoji(item,recipient)} ${item}`
+      )
+      .join("\n");
+
+  document.getElementById(
+    "giftList"
+  ).textContent=message;
+}
+
+async function copyGiftIdeas(){
+
+  const text=
+    document.getElementById(
+      "giftList"
+    ).textContent;
+
+  try{
+
+    await navigator.clipboard.writeText(text);
+
+  }catch(error){
+
+    const temp=
+      document.createElement("textarea");
+
+    temp.value=text;
+    temp.style.position="fixed";
+    temp.style.opacity="0";
+
+    document.body.appendChild(temp);
+
+    temp.select();
+
+    document.execCommand("copy");
+
+    temp.remove();
+
+  }
+
+  const button=
+    document.getElementById(
+      "giftCopyBtn"
+    );
+
+  const original=button.textContent;
+
+  button.textContent="✓ Copied!";
+
+  setTimeout(
+    ()=>button.textContent=original,
+    1500
+  );
+}
+
+
+/* =========================================================
+   SHIPPING LABEL
+========================================================= */
+
+document.getElementById(
+  "shippingTo1"
+).addEventListener(
+  "input",
+  function(){
+    document.getElementById(
+      "shippingDisplayTo1"
+    ).textContent=this.value;
+  }
+);
+
+document.getElementById(
+  "shippingTo2"
+).addEventListener(
+  "input",
+  function(){
+    document.getElementById(
+      "shippingDisplayTo2"
+    ).textContent=this.value;
+  }
+);
+
+function generateShippingPDF(){
+
+  const element=
+    document.getElementById(
+      "shipping-label-page"
+    );
+
+  element.style.boxShadow="none";
+
+  const opt={
+
+    margin:0,
+
+    filename:
+      "Craft_crafterina_Labels.pdf",
+
+    image:{
+      type:"jpeg",
+      quality:1
+    },
+
+    html2canvas:{
+      scale:2,
+      useCORS:true,
+      windowWidth:
+        document.body.scrollWidth,
+      scrollY:0,
+      scrollX:0
+    },
+
+    jsPDF:{
+      unit:"mm",
+      format:"a4",
+      orientation:"portrait"
+    }
+
+  };
+
+  html2pdf()
+    .set(opt)
+    .from(element)
+    .save()
+    .then(()=>{
+
+      element.style.boxShadow=
+        "0 0 10px rgba(0,0,0,0.2)";
+
+    });
+
+}
+
+
+/* =========================================================
+   INVOICE GENERATOR
+========================================================= */
+
+let invoiceItems=[];
+
+const currentDateFormatted=
+  new Date().toLocaleDateString(
+    "en-GB",
+    {
+      day:"2-digit",
+      month:"short",
+      year:"numeric"
+    }
+  );
+
+document.getElementById(
+  "prevDate"
+).innerText=currentDateFormatted;
+
+function renderInvoiceItemInputs(){
+
+  const container=
+    document.getElementById(
+      "items-container"
+    );
+
+  container.innerHTML="";
+
+  if(invoiceItems.length===0){
+
+    container.innerHTML=
+      '<p style="font-size:.85rem;color:#777;margin-bottom:10px;">Click below to add your first item.</p>';
+
+  }else{
+
+    invoiceItems.forEach(
+      (item,index)=>{
+
+        container.innerHTML+=`
+
+          <div class="invoice-item-row">
+
+            <input
+              class="invoice-input"
+              type="text"
+              placeholder="Item Name"
+              value="${escapeHtml(item.name)}"
+              oninput="updateInvoiceItem(${index},'name',this.value)"
+            >
+
+            <input
+              class="invoice-input"
+              type="number"
+              inputmode="numeric"
+              placeholder="Qty"
+              value="${item.qty||''}"
+              oninput="updateInvoiceItem(${index},'qty',this.value)"
+            >
+
+            <input
+              class="invoice-input"
+              type="number"
+              inputmode="decimal"
+              placeholder="Cost"
+              value="${item.cost||''}"
+              oninput="updateInvoiceItem(${index},'cost',this.value)"
+            >
+
+            <input
+              class="invoice-input"
+              type="number"
+              inputmode="decimal"
+              placeholder="Price"
+              value="${item.price||''}"
+              oninput="updateInvoiceItem(${index},'price',this.value)"
+            >
+
+            <button
+              class="invoice-btn invoice-btn-danger"
+              onclick="removeInvoiceItem(${index})"
+            >
+              ×
+            </button>
+
+          </div>
+
+        `;
+
+      }
+    );
+
+  }
+
+  calculateInvoice();
+}
+
+function addInvoiceItemRow(){
+
+  invoiceItems.push({
+    name:"",
+    qty:1,
+    cost:"",
+    price:""
+  });
+
+  renderInvoiceItemInputs();
+}
+
+function removeInvoiceItem(index){
+
+  invoiceItems.splice(index,1);
+
+  renderInvoiceItemInputs();
+}
+
+function updateInvoiceItem(index,key,val){
+
+  invoiceItems[index][key]=
+    key==="name"
+      ?val
+      :parseFloat(val)||0;
+
+  calculateInvoice();
+}
+
+function calculateInvoice(){
+
+  let subtotal=0;
+  let totalCost=0;
+  let prevItemsHTML="";
+
+  if(invoiceItems.length===0){
+
+    prevItemsHTML=
+      '<tr><td colspan="3" style="text-align:center;color:#888;padding:15px 0;">No items added yet</td></tr>';
+
+  }else{
+
+    invoiceItems.forEach(item=>{
+
+      const itemQty=
+        parseFloat(item.qty)||0;
+
+      const itemPrice=
+        parseFloat(item.price)||0;
+
+      const itemCost=
+        parseFloat(item.cost)||0;
+
+      const rowTotal=
+        itemPrice*itemQty;
+
+      const rowCost=
+        itemCost*itemQty;
+
+      subtotal+=rowTotal;
+      totalCost+=rowCost;
+
+      prevItemsHTML+=`
+
+        <tr>
+
+          <td>
+            ${escapeHtml(item.name)||"---"}
+          </td>
+
+          <td style="text-align:center;">
+            ${itemQty}
+          </td>
+
+          <td style="text-align:right;">
+            ₹${rowTotal}
+          </td>
+
+        </tr>
+
+      `;
+
+    });
+
+  }
+
+  const serviceCharge=
+    parseFloat(
+      document.getElementById(
+        "serviceCharge"
+      ).value
+    )||0;
+
+  const advancePaid=
+    parseFloat(
+      document.getElementById(
+        "advancePaid"
+      ).value
+    )||0;
+
+  const total=
+    subtotal+serviceCharge;
+
+  const balanceDue=
+    total-advancePaid;
+
+  const netProfit=
+    total-totalCost;
+
+  const invNo=
+    document.getElementById(
+      "invNo"
+    ).value.trim();
+
+  const custDetails=
+    document.getElementById(
+      "custDetails"
+    ).value.trim();
+
+  document.getElementById(
+    "prevItems"
+  ).innerHTML=prevItemsHTML;
+
+  document.getElementById(
+    "prevSubtotal"
+  ).innerText=`₹${subtotal}`;
+
+  document.getElementById(
+    "prevService"
+  ).innerText=`₹${serviceCharge}`;
+
+  document.getElementById(
+    "prevTotal"
+  ).innerText=`₹${total}`;
+
+  document.getElementById(
+    "prevAdvance"
+  ).innerText=`- ₹${advancePaid}`;
+
+  document.getElementById(
+    "prevBalance"
+  ).innerText=`₹${balanceDue}`;
+
+  document.getElementById(
+    "prevInvNo"
+  ).innerText=
+    invNo
+      ?`CRF-${invNo}`
+      :"CRF-----";
+
+  document.getElementById(
+    "prevBillTo"
+  ).innerText=
+    custDetails
+      ?`Bill to: ${custDetails}`
+      :"Bill to: ------------";
+
+  document.getElementById(
+    "adminRevenue"
+  ).innerText=`₹${total}`;
+
+  document.getElementById(
+    "adminCost"
+  ).innerText=`₹${totalCost}`;
+
+  document.getElementById(
+    "adminProfit"
+  ).innerText=`₹${netProfit}`;
+}
+
+function updateInvoice(){
+  calculateInvoice();
+}
+
+
+/* =========================================================
+   INVOICE HISTORY
+========================================================= */
+
+function saveInvoiceToHistory(){
+
+  const invNo=
+    document.getElementById(
+      "invNo"
+    ).value.trim();
+
+  const custDetails=
+    document.getElementById(
+      "custDetails"
+    ).value.trim();
+
+  const serviceCharge=
+    document.getElementById(
+      "serviceCharge"
+    ).value;
+
+  const advancePaid=
+    document.getElementById(
+      "advancePaid"
+    ).value;
+
+  if(!invNo)return;
+
+  const invoiceData={
+
+    invNo,
+
+    custDetails:
+      custDetails||"Unnamed Customer",
+
+    serviceCharge,
+
+    advancePaid,
+
+    items:
+      JSON.parse(
+        JSON.stringify(invoiceItems)
+      ),
+
+    date:
+      currentDateFormatted
+
+  };
+
+  let history=
+    JSON.parse(
+      localStorage.getItem(
+        "craft_invoices_history"
+      )
+    )||[];
+
+  const existingIndex=
+    history.findIndex(
+      inv=>inv.invNo===invNo
+    );
+
+  if(existingIndex>-1){
+
+    history[existingIndex]=invoiceData;
+
+  }else{
+
+    history.unshift(invoiceData);
+
+  }
+
+  localStorage.setItem(
+    "craft_invoices_history",
+    JSON.stringify(history)
+  );
+
+  renderInvoiceHistory();
+}
+
+function renderInvoiceHistory(){
+
+  const historyList=
+    document.getElementById(
+      "history-list"
+    );
+
+  const allTimeStats=
+    document.getElementById(
+      "all-time-stats"
+    );
+
+  let history=
+    JSON.parse(
+      localStorage.getItem(
+        "craft_invoices_history"
+      )
+    )||[];
+
+  if(history.length===0){
+
+    historyList.innerHTML=
+      '<p style="font-size:.85rem;color:#777;">No saved invoices yet.</p>';
+
+    allTimeStats.style.display="none";
+
+    return;
+  }
+
+  let allTimeRevenue=0;
+  let allTimeCost=0;
+
+  historyList.innerHTML="";
+
+  history.forEach(inv=>{
+
+    let invRevenue=
+      parseFloat(
+        inv.serviceCharge
+      )||0;
+
+    let invCost=0;
+
+    inv.items.forEach(item=>{
+
+      const itemQty=
+        parseFloat(item.qty)||0;
+
+      const itemPrice=
+        parseFloat(item.price)||0;
+
+      const itemCost=
+        parseFloat(item.cost)||0;
+
+      invRevenue+=
+        itemPrice*itemQty;
+
+      invCost+=
+        itemCost*itemQty;
+
+    });
+
+    allTimeRevenue+=invRevenue;
+    allTimeCost+=invCost;
+
+    historyList.innerHTML+=`
+
+      <div class="invoice-history-item">
+
+        <div>
+
+          <strong>
+            CRF-${escapeHtml(inv.invNo)}
+          </strong>
+
+          -
+          ${escapeHtml(
+            inv.custDetails.split("(")[0]
+          )}
+
+        </div>
+
+        <div class="invoice-history-actions">
+
+          <button
+            class="invoice-btn-sm invoice-btn-load"
+            onclick="loadInvoice('${escapeHtml(inv.invNo)}')"
+          >
+            View/Edit
+          </button>
+
+          <button
+            class="invoice-btn-sm invoice-btn-del"
+            onclick="deleteInvoice('${escapeHtml(inv.invNo)}')"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+  });
+
+  const allTimeProfit=
+    allTimeRevenue-allTimeCost;
+
+  allTimeStats.style.display="block";
+
+  allTimeStats.innerHTML=`
+
+    <h4>
+      📊 All-Time Performance
+    </h4>
+
+    <div class="invoice-profit-row">
+      <span>Total Revenue:</span>
+      <span>₹${allTimeRevenue}</span>
+    </div>
+
+    <div class="invoice-profit-row">
+      <span>Total Costs:</span>
+      <span>₹${allTimeCost}</span>
+    </div>
+
+    <div class="invoice-profit-row invoice-profit-total">
+      <span>Total Net Profit:</span>
+      <span>₹${allTimeProfit}</span>
+    </div>
+
+  `;
+}
+
+function loadInvoice(invNo){
+
+  let history=
+    JSON.parse(
+      localStorage.getItem(
+        "craft_invoices_history"
+      )
+    )||[];
+
+  const inv=
+    history.find(
+      item=>item.invNo===invNo
+    );
+
+  if(inv){
+
+    document.getElementById(
+      "invNo"
+    ).value=inv.invNo;
+
+    document.getElementById(
+      "custDetails"
+    ).value=inv.custDetails;
+
+    document.getElementById(
+      "serviceCharge"
+    ).value=inv.serviceCharge;
+
+    document.getElementById(
+      "advancePaid"
+    ).value=inv.advancePaid;
+
+    invoiceItems=
+      JSON.parse(
+        JSON.stringify(inv.items)
+      );
+
+    renderInvoiceItemInputs();
+
+  }
+
+}
+
+function deleteInvoice(invNo){
+
+  let history=
+    JSON.parse(
+      localStorage.getItem(
+        "craft_invoices_history"
+      )
+    )||[];
+
+  history=
+    history.filter(
+      item=>item.invNo!==invNo
+    );
+
+  localStorage.setItem(
+    "craft_invoices_history",
+    JSON.stringify(history)
+  );
+
+  renderInvoiceHistory();
+}
+
+
+/* =========================================================
+   INVOICE IMAGE GENERATION
+========================================================= */
+
+function generateInvoiceImage(){
+
+  const invNo=
+    document.getElementById(
+      "invNo"
+    ).value.trim();
+
+  if(!invNo){
+
+    alert(
+      "Please enter an Invoice Number before generating."
+    );
+
+    return;
+  }
+
+  saveInvoiceToHistory();
+
+  const genBtn=
+    document.getElementById(
+      "genBtn"
+    );
+
+  genBtn.innerText="Generating...";
+
+  const card=
+    document.getElementById(
+      "invoice-card"
+    );
+
+  html2canvas(
+    card,
+    {
+      scale:3,
+      useCORS:true,
+      backgroundColor:"#F9F8F3"
+    }
+  )
+  .then(canvas=>{
+
+    genBtn.innerText=
+      "Generate Invoice Image/PDF";
+
+    const imgData=
+      canvas.toDataURL(
+        "image/png"
+      );
+
+    document.getElementById(
+      "modalImg"
+    ).src=imgData;
+
+    document.getElementById(
+      "pdfModal"
+    ).style.display="flex";
+
+  })
+  .catch(err=>{
+
+    genBtn.innerText=
+      "Generate Invoice Image/PDF";
+
+    alert(
+      "Error generating invoice preview. Please try again."
+    );
+
+  });
+
+}
+
+function closeInvoiceModal(){
+
+  document.getElementById(
+    "pdfModal"
+  ).style.display="none";
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+function resetApp(){
+
+  if(!confirm("Reset the price list?"))return;
+
+  document.getElementById(
+    "hamperName"
+  ).value="";
+
+  document.getElementById(
+    "delivery"
+  ).value=260;
+
+  document.getElementById(
+    "items"
+  ).innerHTML="";
+
+  itemCounter=0;
+
+  defaultItems.forEach(item=>{
+    addItem({...item});
+  });
+
+  updatePreview();
+}
+
+
+/* =========================================================
+   INITIAL SETUP
+========================================================= */
+
+defaultItems.forEach(item=>{
+  addItem({...item});
+});
+
+updatePreview();
+
+updateGiftRecipientOptions();
+
+renderInvoiceItemInputs();
+
+renderInvoiceHistory();
+
+/* Keep Reset visible initially because Price List is active */
+document.getElementById("resetBtn").style.display="";
+
+</script>
+
+</body>
+</html>
