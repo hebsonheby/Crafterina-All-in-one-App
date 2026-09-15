@@ -807,6 +807,11 @@ button,input,select,textarea{font:inherit}
 
 .shipping-icon-wrapper svg{
   display:block;
+  fill:#000;
+  stroke:#000;
+  stroke-width:3;
+  stroke-linejoin:round;
+  stroke-linecap:round;
 }
 
 /* ================= INVOICE ================= */
@@ -4370,43 +4375,46 @@ function generateShippingPDF(){
       "shipping-label-page"
     );
 
-  const options={
+  const width=element.offsetWidth;
+  const height=element.offsetHeight;
 
-    margin:0,
+  html2canvas(element,{
+    scale:2,
+    useCORS:true,
+    backgroundColor:"#ffffff",
+    width:width,
+    height:height,
+    windowWidth:width,
+    windowHeight:height,
+    scrollX:0,
+    scrollY:0
+  }).then(function(canvas){
 
-    filename:"Craft_Crafterina_Shipping_Label.pdf",
-
-    image:{
-      type:"jpeg",
-      quality:.98
-    },
-
-    html2canvas:{
-      scale:2,
-      useCORS:true,
-      backgroundColor:"#ffffff",
-      windowWidth:element.scrollWidth,
-      windowHeight:element.scrollHeight,
-      scrollX:0,
-      scrollY:0
-    },
-
-    jsPDF:{
+    const pdf=new jsPDF({
       unit:"mm",
       format:"a4",
       orientation:"portrait"
-    },
+    });
 
-    pagebreak:{
-      mode:["avoid-all"]
-    }
+    const pageWidth=pdf.internal.pageSize.getWidth();
+    const pageHeight=pdf.internal.pageSize.getHeight();
+    const marginX=(pageWidth-200)/2;
+    const marginY=(pageHeight-290)/2;
 
-  };
+    pdf.addImage(
+      canvas,
+      "JPEG",
+      marginX,
+      marginY,
+      200,
+      290,
+      undefined,
+      "FAST"
+    );
 
-  html2pdf()
-    .set(options)
-    .from(element)
-    .save();
+    pdf.save("Craft_Crafterina_Shipping_Label.pdf");
+
+  });
 
 }
 
