@@ -651,6 +651,8 @@ button,input,select,textarea{font:inherit}
 .shipping-label-half{
   height:50%;
   width:100%;
+  flex:0 0 50%;
+  min-height:0;
   padding:15mm;
   box-sizing:border-box;
   border-bottom:3px dashed #000;
@@ -692,7 +694,7 @@ button,input,select,textarea{font:inherit}
 
 .shipping-section-title{
   font-size:16px;
-  font-weight:bold;
+  font-weight:900;
   color:#000;
   margin:0 0 10px 0;
   border-bottom:3px solid #000;
@@ -708,7 +710,8 @@ button,input,select,textarea{font:inherit}
 
 .shipping-address-text{
   font-size:20px;
-  font-weight:700;
+  font-weight:900;
+  color:#000;
   line-height:1.3;
 }
 
@@ -782,13 +785,15 @@ button,input,select,textarea{font:inherit}
 
 .shipping-warning-line1{
   font-size:26px;
-  font-weight:bold;
+  font-weight:900;
+  color:#000;
   white-space:nowrap;
 }
 
 .shipping-warning-line2{
   font-size:34px;
-  font-weight:bold;
+  font-weight:900;
+  color:#000;
 }
 
 .shipping-icon-wrapper{
@@ -4379,7 +4384,11 @@ function generateShippingPDF(){
     html2canvas:{
       scale:2,
       useCORS:true,
-      backgroundColor:"#ffffff"
+      backgroundColor:"#ffffff",
+      windowWidth:element.scrollWidth,
+      windowHeight:element.scrollHeight,
+      scrollX:0,
+      scrollY:0
     },
 
     jsPDF:{
