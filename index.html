@@ -119,7 +119,7 @@ button,input,select,textarea{font:inherit}
   margin:18px auto 0;
   padding:0 16px;
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:12px;
 }
 
@@ -1406,6 +1406,10 @@ button,input,select,textarea{font:inherit}
     🧾 Invoice
   </button>
 
+  <button id="mainPhotoPrintTab" class="main-tab-btn" type="button" onclick="showMainTab('photoPrintTool')">
+    📸 Photo Print Tool
+  </button>
+
 </nav>
 
 <!-- =====================================================
@@ -2245,6 +2249,1096 @@ button,input,select,textarea{font:inherit}
 
 </div>
 
+
+<!-- =====================================================
+     PHOTO PRINT TOOL
+===================================================== -->
+
+<div id="mainPhotoPrintView" class="main-tab-view">
+
+<style>
+.photo-print-app *{box-sizing:border-box}
+.photo-print-app{
+  margin:0;
+  background:var(--cream);
+  color:var(--text);
+  font-family:var(--app-font);
+}
+.photo-print-app .wrap{max-width:980px;margin:auto;padding:18px}
+.photo-print-app h1{
+  color:var(--sage-deep);
+  font-size:24px;
+  line-height:1.2;
+  font-weight:800;
+  margin:0 0 18px;
+}
+.photo-print-app .card{
+  background:var(--white);
+  border:1px solid rgba(222,227,212,.7);
+  border-radius:16px;
+  padding:20px;
+  margin-bottom:14px;
+  box-shadow:var(--shadow);
+}
+.photo-print-app label{display:block;margin-bottom:8px;color:var(--text);font-weight:700}
+.photo-print-app button,
+.photo-print-app select,
+.photo-print-app input[type=number],
+.photo-print-app input[type=file]{font:inherit}
+.photo-print-app button{
+  border:0;
+  border-radius:10px;
+  padding:12px 16px;
+  background:var(--sage-dark);
+  color:var(--white);
+  font-weight:800;
+  cursor:pointer;
+}
+.photo-print-app button:hover{background:var(--sage-deep)}
+.photo-print-app button:disabled{opacity:.45;cursor:not-allowed}
+.photo-print-app input[type=file]{
+  width:100%;
+  padding:10px 0;
+  color:var(--text);
+  background:transparent;
+}
+.photo-print-app select,
+.photo-print-app input[type=number]{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:10px;
+  background:var(--cream-light);
+  color:var(--text);
+  outline:none;
+}
+.photo-print-app select:focus,
+.photo-print-app input[type=number]:focus{
+  border-color:var(--sage-dark);
+  box-shadow:0 0 0 3px rgba(125,139,105,.12);
+}
+.photo-print-app .grid{display:grid;grid-template-columns:1fr;gap:14px}
+.photo-print-app .dimensions{font-size:18px;font-weight:700;margin-top:10px}
+.photo-print-app .muted{font-size:13px;color:var(--text-light);line-height:1.45}
+.photo-print-app .custom{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.photo-print-app .previewBox{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:#F4F5EF;
+}
+.photo-print-app .previewTitle{color:var(--sage-deep);font-weight:800;margin-bottom:8px}
+.photo-print-app .canvasWrap{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+.photo-print-app canvas{max-width:100%;height:auto;display:block}
+.photo-print-app #cropCanvas{
+  width:100%;
+  background:#F4F5EF;
+  border:1px solid var(--line);
+  border-radius:12px;
+  touch-action:none;
+  cursor:grab;
+}
+.photo-print-app #cropCanvas.dragging{cursor:grabbing}
+.photo-print-app .sliderRow{display:flex;gap:12px;align-items:center}
+.photo-print-app input[type=range]{width:100%;accent-color:var(--sage-dark)}
+.photo-print-app .rangeVal{
+  width:55px;
+  text-align:right;
+  color:var(--text-light);
+  font-variant-numeric:tabular-nums;
+}
+.photo-print-app .actions{display:flex;gap:10px;flex-wrap:wrap}
+.photo-print-app .hidden{display:none}
+@media(max-width:700px){
+  .photo-print-app .grid{grid-template-columns:1fr}
+  .photo-print-app h1{font-size:21px}
+  .photo-print-app .card{padding:16px;border-radius:14px}
+}
+</style>
+
+<div class="photo-print-app">
+<div class="wrap">
+  <h1>PHOTO FRAME PRINT TOOL</h1>
+
+  <div class="card">
+    <label for="photo">Upload Photo</label>
+    <input id="photo" type="file" accept="image/jpeg,image/png">
+    <div id="fileInfo" class="muted">No photo selected.</div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="frame">Frame Size</label>
+        <select id="frame">
+          <option value="A4">A4 Frame</option>
+          <option value="A5">A5 Frame</option>
+          <option value="4x4">4×4 Frame</option>
+          <option value="3x3">3×3 Frame</option>
+          <option value="mini">Mini Frame</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="previewTitle">Photo / Crop Preview</div>
+    <div class="canvasWrap"><canvas id="cropCanvas"></canvas></div>
+  </div>
+
+  <div class="card">
+    <label for="zoomSlider">Crop / Zoom</label>
+    <div class="sliderRow">
+      <input id="zoomSlider" type="range" min="0" max="100" step="1" value="0" disabled>
+      <div id="zoomValue" class="rangeVal">0%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="actions">
+      <button id="pdfBtn" disabled>DOWNLOAD PRINT-READY PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const A4_W_CM = 21;
+const A4_H_CM = 29.7;
+const DPI = 300;
+const MAX_PREVIEW_W = 900;
+const MAX_PREVIEW_H = 650;
+
+const FRAMES = Object.freeze({
+  A4:    {name:'A4 Frame', w:20.7, h:29.6, fileW:20.7, fileH:29.6},
+  A5:    {name:'A5 Frame', w:15.1, h:20.1, fileW:15.57, fileH:20.72},
+  '4x4': {name:'4×4 Frame', w:10.1, h:10.1, fileW:10.41, fileH:10.41},
+  '3x3': {name:'3×3 Frame', w:7.4, h:7.4, fileW:7.63, fileH:7.63},
+  mini:  {name:'Mini Frame', w:6.35, h:8.9, fileW:6.55, fileH:9.18}
+});
+
+const $ = id => document.getElementById(id);
+const photoInput = $('photo');
+const frameSelect = $('frame');
+const cropCanvas = $('cropCanvas');
+const zoomSlider = $('zoomSlider');
+const zoomValue = $('zoomValue');
+const fileInfo = $('fileInfo');
+const pdfBtn = $('pdfBtn');
+
+let image = null;
+let objectUrl = null;
+let exifOrientation = 1;
+let zoom = 1;
+let offsetX = 0;
+let offsetY = 0;
+let dragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let startOffsetX = 0;
+let startOffsetY = 0;
+let previewState = null;
+
+function cmToPx(cm){ return Math.round(cm / 2.54 * DPI); }
+function pxToPt(px){ return px / DPI * 72; }
+
+function currentFrame(){
+  return FRAMES[frameSelect.value];
+}
+
+function correctedSize(frame){
+  // Preset frame file dimensions are the already-tested values above.
+  // Do not recalculate them or apply the printer correction a second time.
+  return {w:frame.fileW, h:frame.fileH};
+}
+
+async function readExifOrientation(file){
+  if(file.type.toLowerCase() !== 'image/jpeg') return 1;
+  try{
+    const buffer = await file.arrayBuffer();
+    const view = new DataView(buffer);
+    if(view.byteLength < 4 || view.getUint16(0, false) !== 0xFFD8) return 1;
+    let offset = 2;
+    while(offset + 4 <= view.byteLength){
+      if(view.getUint8(offset) !== 0xFF) break;
+      const marker = view.getUint8(offset + 1);
+      const length = view.getUint16(offset + 2, false);
+      if(length < 2 || offset + 2 + length > view.byteLength) break;
+      if(marker === 0xE1){
+        const exifStart = offset + 4;
+        if(exifStart + 6 <= view.byteLength && view.getUint32(exifStart, false) === 0x45786966){
+          const tiff = exifStart + 6;
+          if(tiff + 8 > view.byteLength) return 1;
+          const little = view.getUint16(tiff, false) === 0x4949;
+          const u16 = p => view.getUint16(p, little);
+          const u32 = p => view.getUint32(p, little);
+          if(u16(tiff + 2) !== 0x002A) return 1;
+          const ifd = tiff + u32(tiff + 4);
+          if(ifd + 2 > view.byteLength) return 1;
+          const count = u16(ifd);
+          for(let i=0;i<count;i++){
+            const entry = ifd + 2 + i * 12;
+            if(entry + 12 > view.byteLength) break;
+            if(u16(entry) === 0x0112) return u16(entry + 8);
+          }
+        }
+        return 1;
+      }
+      offset += 2 + length;
+    }
+  }catch(_){ }
+  return 1;
+}
+
+function orientedDimensions(w,h,o){
+  return (o >= 5 && o <= 8) ? {w:h,h:w} : {w,h};
+}
+
+function getSourceSize(){
+  return orientedDimensions(image.naturalWidth, image.naturalHeight, exifOrientation);
+}
+
+function drawOriented(ctx, source, x, y, w, h, o){
+  ctx.save();
+  switch(o){
+    case 2: ctx.translate(x + w, y); ctx.scale(-1, 1); break;
+    case 3: ctx.translate(x + w, y + h); ctx.rotate(Math.PI); break;
+    case 4: ctx.translate(x, y + h); ctx.scale(1, -1); break;
+    case 5: ctx.translate(x, y); ctx.rotate(Math.PI / 2); ctx.scale(1, -1); break;
+    case 6: ctx.translate(x + w, y); ctx.rotate(Math.PI / 2); break;
+    case 7: ctx.translate(x + w, y + h); ctx.rotate(-Math.PI / 2); ctx.scale(1, -1); break;
+    case 8: ctx.translate(x, y + h); ctx.rotate(-Math.PI / 2); break;
+  }
+  if(o >= 5 && o <= 8) ctx.drawImage(source, 0, 0, h, w);
+  else ctx.drawImage(source, 0, 0, w, h);
+  ctx.restore();
+}
+
+function makeOrientedCanvas(){
+  const src = getSourceSize();
+  const c = document.createElement('canvas');
+  c.width = src.w;
+  c.height = src.h;
+  drawOriented(c.getContext('2d'), image, 0, 0, src.w, src.h, exifOrientation);
+  return c;
+}
+
+function getCropRect(){
+  const src = getSourceSize();
+  const frame = currentFrame();
+  const targetRatio = frame.name === 'A5 Frame' ? frame.fileW / frame.fileH : frame.w / frame.h;
+  const srcRatio = src.w / src.h;
+  let sw, sh;
+
+  if(srcRatio > targetRatio){
+    sh = src.h / zoom;
+    sw = sh * targetRatio;
+  }else{
+    sw = src.w / zoom;
+    sh = sw / targetRatio;
+  }
+
+  sw = Math.min(src.w, sw);
+  sh = Math.min(src.h, sh);
+  const maxX = Math.max(0, src.w - sw);
+  const maxY = Math.max(0, src.h - sh);
+  const sx = Math.max(0, Math.min(maxX, maxX / 2 + offsetX));
+  const sy = Math.max(0, Math.min(maxY, maxY / 2 + offsetY));
+  return {sx, sy, sw, sh};
+}
+
+function resetPositionForFrame(){
+  offsetX = 0;
+  offsetY = 0;
+}
+
+function updateFrameUI(){
+  if(image) renderPreview();
+}
+
+function renderPreview(){
+  if(!image){
+    cropCanvas.width = 1;
+    cropCanvas.height = 1;
+    previewState = null;
+    return;
+  }
+
+  const frame = currentFrame();
+  const targetRatio = frame.name === 'A5 Frame' ? frame.fileW / frame.fileH : frame.w / frame.h;
+  let boxW = MAX_PREVIEW_W;
+  let boxH = boxW / targetRatio;
+  if(boxH > MAX_PREVIEW_H){
+    boxH = MAX_PREVIEW_H;
+    boxW = boxH * targetRatio;
+  }
+  const canvasW = Math.round(Math.max(320, Math.min(MAX_PREVIEW_W, boxW)));
+  const canvasH = Math.round(Math.max(260, Math.min(MAX_PREVIEW_H, boxH)));
+  cropCanvas.width = canvasW;
+  cropCanvas.height = canvasH;
+
+  const ctx = cropCanvas.getContext('2d');
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.fillStyle = '#ddd';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  const rect = getCropRect();
+  const source = makeOrientedCanvas();
+  const scale = canvasW / rect.sw;
+  const drawW = source.width * scale;
+  const drawH = source.height * scale;
+  const drawX = -rect.sx * scale;
+  const drawY = -rect.sy * scale;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, canvasW, canvasH);
+  ctx.clip();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, drawX, drawY, drawW, drawH);
+  ctx.restore();
+
+  // Subtle crop boundary only; the preview itself is the selected print area.
+  ctx.strokeStyle = 'rgba(255,255,255,.95)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, canvasW - 3, canvasH - 3);
+
+  previewState = {source, rect};
+}
+
+function updateZoomUI(){
+  const v = Number(zoomSlider.value);
+  zoomValue.textContent = `${v}%`;
+}
+
+function resetZoom(){
+  zoom = 1;
+  zoomSlider.value = '0';
+  updateZoomUI();
+}
+
+photoInput.addEventListener('change', async function(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(!/^image\/(jpeg|png)$/i.test(file.type)){
+    fileInfo.textContent = 'Please choose a JPG, JPEG or PNG photo.';
+    return;
+  }
+
+  if(objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl = URL.createObjectURL(file);
+  exifOrientation = await readExifOrientation(file);
+
+  const nextImage = new Image();
+  nextImage.onload = function(){
+    image = nextImage;
+    resetPositionForFrame();
+    resetZoom();
+    fileInfo.textContent = `${file.name} • ${Math.round(file.size / 1024)} KB • ${image.naturalWidth} × ${image.naturalHeight}px`;
+    zoomSlider.disabled = false;
+    pdfBtn.disabled = false;
+    renderPreview();
+  };
+  nextImage.onerror = function(){
+    image = null;
+    zoomSlider.disabled = true;
+    pdfBtn.disabled = true;
+    fileInfo.textContent = 'The selected photo could not be loaded.';
+  };
+  nextImage.src = objectUrl;
+});
+
+frameSelect.addEventListener('change', function(){
+  resetPositionForFrame();
+  updateFrameUI();
+});
+zoomSlider.addEventListener('input', function(){
+  const v = Number(zoomSlider.value);
+  zoom = 1 + v / 100 * 2;
+  updateZoomUI();
+  renderPreview();
+});
+
+cropCanvas.addEventListener('pointerdown', function(e){
+  if(!image) return;
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  startOffsetX = offsetX;
+  startOffsetY = offsetY;
+  cropCanvas.classList.add('dragging');
+  try{ cropCanvas.setPointerCapture(e.pointerId); }catch(_){ }
+});
+
+cropCanvas.addEventListener('pointermove', function(e){
+  if(!dragging || !image) return;
+  const rect = getCropRect();
+  const src = getSourceSize();
+  const frame = currentFrame();
+  const targetRatio = frame.name === 'A5 Frame' ? frame.fileW / frame.fileH : frame.w / frame.h;
+  let sw, sh;
+  if(src.w / src.h > targetRatio){
+    sh = src.h / zoom;
+    sw = sh * targetRatio;
+  }else{
+    sw = src.w / zoom;
+    sh = sw / targetRatio;
+  }
+  sw = Math.min(src.w, sw);
+  sh = Math.min(src.h, sh);
+  const maxX = Math.max(0, src.w - sw);
+  const maxY = Math.max(0, src.h - sh);
+  const canvasRect = cropCanvas.getBoundingClientRect();
+  if(!canvasRect.width || !canvasRect.height) return;
+
+  // Pointer movement maps to source pixels. Direction is natural: drag right -> photo/crop moves right.
+  const scaleX = sw / canvasRect.width;
+  const scaleY = sh / canvasRect.height;
+  offsetX = startOffsetX - (e.clientX - dragStartX) * scaleX;
+  offsetY = startOffsetY - (e.clientY - dragStartY) * scaleY;
+  offsetX = Math.max(-maxX / 2, Math.min(maxX / 2, offsetX));
+  offsetY = Math.max(-maxY / 2, Math.min(maxY / 2, offsetY));
+  renderPreview();
+});
+
+function stopDragging(e){
+  if(!dragging) return;
+  dragging = false;
+  cropCanvas.classList.remove('dragging');
+  try{ cropCanvas.releasePointerCapture(e.pointerId); }catch(_){ }
+}
+cropCanvas.addEventListener('pointerup', stopDragging);
+cropCanvas.addEventListener('pointercancel', stopDragging);
+cropCanvas.addEventListener('lostpointercapture', function(){ dragging = false; cropCanvas.classList.remove('dragging'); });
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
+
+function buildPrintCanvas(){
+  if(!image) throw new Error('No photo loaded.');
+  const frame = currentFrame();
+  const outputSize = correctedSize(frame);
+  const pageW = cmToPx(A4_W_CM);
+  const pageH = cmToPx(A4_H_CM);
+  const photoW = cmToPx(outputSize.w);
+  const photoH = cmToPx(outputSize.h);
+  if(photoW > pageW || photoH > pageH) throw new Error('The selected frame does not fit on A4.');
+
+  const page = document.createElement('canvas');
+  page.width = pageW;
+  page.height = pageH;
+  const ctx = page.getContext('2d', {alpha:false});
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, pageW, pageH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const source = previewState ? previewState.source : makeOrientedCanvas();
+  const crop = getCropRect();
+  const x = Math.round((pageW - photoW) / 2);
+  const y = Math.round((pageH - photoH) / 2);
+  ctx.drawImage(source, crop.sx, crop.sy, crop.sw, crop.sh, x, y, photoW, photoH);
+
+  return {page, pageW, pageH, photoW, photoH, x, y, source, crop};
+}
+
+function buildPdf(printData){
+  const frame = currentFrame();
+  // fileW/fileH are raster dimensions only. Physical PDF placement must use
+  // the actual frame dimensions (frame.w/frame.h) with no extra scaling.
+  const physicalSize = {w: frame.w, h: frame.h};
+
+  const photoCanvas = document.createElement('canvas');
+  photoCanvas.width = printData.photoW;
+  photoCanvas.height = printData.photoH;
+
+  const photoCtx = photoCanvas.getContext('2d', {alpha:false});
+  photoCtx.imageSmoothingEnabled = true;
+  photoCtx.imageSmoothingQuality = 'high';
+  photoCtx.fillStyle = '#fff';
+  photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+
+  const source = previewState ? previewState.source : makeOrientedCanvas();
+  const crop = getCropRect();
+
+  photoCtx.drawImage(
+    source,
+    crop.sx, crop.sy, crop.sw, crop.sh,
+    0, 0, printData.photoW, printData.photoH
+  );
+
+  const jpegDataUrl = photoCanvas.toDataURL('image/jpeg', 0.96);
+  const base64 = jpegDataUrl.split(',')[1];
+  const binary = atob(base64);
+  const imageBytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) imageBytes[i] = binary.charCodeAt(i);
+
+  // Explicit PDF geometry in points. The PDF page is always true A4:
+  // 21 × 29.7 cm portrait. Physical frame placement uses frame.w/frame.h.
+  // fileW/fileH affect only the raster image resolution, never its physical size.
+  const PT_PER_CM = 72 / 2.54;
+  const PW = A4_W_CM * PT_PER_CM;
+  const PH = A4_H_CM * PT_PER_CM;
+  const w = physicalSize.w * PT_PER_CM;
+  const h = physicalSize.h * PT_PER_CM;
+  const x = (A4_W_CM - physicalSize.w) / 2 * PT_PER_CM;
+  const y = (A4_H_CM - physicalSize.h) / 2 * PT_PER_CM;
+
+  const content = `q\n${w} 0 0 ${h} ${x} ${y} cm\n/Im0 Do\nQ`;
+
+  const objects = [];
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objects[2] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+  objects[3] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`;
+  objects[4] = `<< /Type /XObject /Subtype /Image /Width ${photoCanvas.width} /Height ${photoCanvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>`;
+  objects[5] = `<< /Length ${content.length} >>`;
+
+  const objectCount = 5;
+  const chunks = [];
+  const offsets = new Array(objectCount + 1).fill(0);
+  let byteLength = 0;
+
+  const addText = text => {
+    chunks.push(text);
+    byteLength += new TextEncoder().encode(text).length;
+  };
+  const addBytes = bytes => {
+    chunks.push(bytes);
+    byteLength += bytes.length;
+  };
+
+  addText('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+
+  for(let i=1;i<=objectCount;i++){
+    offsets[i] = byteLength;
+    addText(`${i} 0 obj\n`);
+
+    if(i === 4){
+      addText(`${objects[i]}\nstream\n`);
+      addBytes(imageBytes);
+      addText('\nendstream\nendobj\n');
+    }else if(i === 5){
+      addText(`${objects[i]}\nstream\n${content}\nendstream\nendobj\n`);
+    }else{
+      addText(`${objects[i]}\nendobj\n`);
+    }
+  }
+
+  const xrefOffset = byteLength;
+  addText(`xref\n0 ${objectCount + 1}\n`);
+  addText('0000000000 65535 f \n');
+  for(let i=1;i<=objectCount;i++){
+    addText(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);
+  }
+  addText(`trailer\n<< /Size ${objectCount + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+  return new Blob(chunks, {type:'application/pdf'});
+}
+
+pdfBtn.addEventListener('click', function(){
+  if(!image) return;
+  pdfBtn.disabled = true;
+  try{
+    const printData = buildPrintCanvas();
+    const pdf = buildPdf(printData);
+    downloadBlob(pdf, 'print-ready-photo-A4.pdf');
+  }catch(err){
+    console.error(err);
+    alert('PDF generation failed. Please try the photo again.');
+  }finally{
+    pdfBtn.disabled = false;
+  }
+});
+
+updateZoomUI();
+updateFrameUI();
+</script>
+</div>
+
+<script>
+(function(){
+'use strict';
+const A4_W_CM = 21;
+const A4_H_CM = 29.7;
+const DPI = 300;
+const MAX_PREVIEW_W = 900;
+const MAX_PREVIEW_H = 650;
+
+const FRAMES = Object.freeze({
+  A4:    {name:'A4 Frame', w:20.7, h:29.6, fileW:20.7, fileH:29.6},
+  A5:    {name:'A5 Frame', w:15.1, h:20.1, fileW:15.57, fileH:20.72},
+  '4x4': {name:'4×4 Frame', w:10.1, h:10.1, fileW:10.41, fileH:10.41},
+  '3x3': {name:'3×3 Frame', w:7.4, h:7.4, fileW:7.63, fileH:7.63},
+  mini:  {name:'Mini Frame', w:6.35, h:8.9, fileW:6.55, fileH:9.18}
+});
+
+const $ = id => document.getElementById(id);
+const photoInput = $('photo');
+const frameSelect = $('frame');
+const cropCanvas = $('cropCanvas');
+const zoomSlider = $('zoomSlider');
+const zoomValue = $('zoomValue');
+const fileInfo = $('fileInfo');
+const pdfBtn = $('pdfBtn');
+
+let image = null;
+let objectUrl = null;
+let exifOrientation = 1;
+let zoom = 1;
+let offsetX = 0;
+let offsetY = 0;
+let dragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let startOffsetX = 0;
+let startOffsetY = 0;
+let previewState = null;
+
+function cmToPx(cm){ return Math.round(cm / 2.54 * DPI); }
+function pxToPt(px){ return px / DPI * 72; }
+
+function currentFrame(){
+  return FRAMES[frameSelect.value];
+}
+
+function correctedSize(frame){
+  // Preset frame file dimensions are the already-tested values above.
+  // Do not recalculate them or apply the printer correction a second time.
+  return {w:frame.fileW, h:frame.fileH};
+}
+
+async function readExifOrientation(file){
+  if(file.type.toLowerCase() !== 'image/jpeg') return 1;
+  try{
+    const buffer = await file.arrayBuffer();
+    const view = new DataView(buffer);
+    if(view.byteLength < 4 || view.getUint16(0, false) !== 0xFFD8) return 1;
+    let offset = 2;
+    while(offset + 4 <= view.byteLength){
+      if(view.getUint8(offset) !== 0xFF) break;
+      const marker = view.getUint8(offset + 1);
+      const length = view.getUint16(offset + 2, false);
+      if(length < 2 || offset + 2 + length > view.byteLength) break;
+      if(marker === 0xE1){
+        const exifStart = offset + 4;
+        if(exifStart + 6 <= view.byteLength && view.getUint32(exifStart, false) === 0x45786966){
+          const tiff = exifStart + 6;
+          if(tiff + 8 > view.byteLength) return 1;
+          const little = view.getUint16(tiff, false) === 0x4949;
+          const u16 = p => view.getUint16(p, little);
+          const u32 = p => view.getUint32(p, little);
+          if(u16(tiff + 2) !== 0x002A) return 1;
+          const ifd = tiff + u32(tiff + 4);
+          if(ifd + 2 > view.byteLength) return 1;
+          const count = u16(ifd);
+          for(let i=0;i<count;i++){
+            const entry = ifd + 2 + i * 12;
+            if(entry + 12 > view.byteLength) break;
+            if(u16(entry) === 0x0112) return u16(entry + 8);
+          }
+        }
+        return 1;
+      }
+      offset += 2 + length;
+    }
+  }catch(_){ }
+  return 1;
+}
+
+function orientedDimensions(w,h,o){
+  return (o >= 5 && o <= 8) ? {w:h,h:w} : {w,h};
+}
+
+function getSourceSize(){
+  return orientedDimensions(image.naturalWidth, image.naturalHeight, exifOrientation);
+}
+
+function drawOriented(ctx, source, x, y, w, h, o){
+  ctx.save();
+  switch(o){
+    case 2: ctx.translate(x + w, y); ctx.scale(-1, 1); break;
+    case 3: ctx.translate(x + w, y + h); ctx.rotate(Math.PI); break;
+    case 4: ctx.translate(x, y + h); ctx.scale(1, -1); break;
+    case 5: ctx.translate(x, y); ctx.rotate(Math.PI / 2); ctx.scale(1, -1); break;
+    case 6: ctx.translate(x + w, y); ctx.rotate(Math.PI / 2); break;
+    case 7: ctx.translate(x + w, y + h); ctx.rotate(-Math.PI / 2); ctx.scale(1, -1); break;
+    case 8: ctx.translate(x, y + h); ctx.rotate(-Math.PI / 2); break;
+  }
+  if(o >= 5 && o <= 8) ctx.drawImage(source, 0, 0, h, w);
+  else ctx.drawImage(source, 0, 0, w, h);
+  ctx.restore();
+}
+
+function makeOrientedCanvas(){
+  const src = getSourceSize();
+  const c = document.createElement('canvas');
+  c.width = src.w;
+  c.height = src.h;
+  drawOriented(c.getContext('2d'), image, 0, 0, src.w, src.h, exifOrientation);
+  return c;
+}
+
+function getCropRect(){
+  const src = getSourceSize();
+  const frame = currentFrame();
+  const targetRatio = frame.name === 'A5 Frame' ? frame.fileW / frame.fileH : frame.w / frame.h;
+  const srcRatio = src.w / src.h;
+  let sw, sh;
+
+  if(srcRatio > targetRatio){
+    sh = src.h / zoom;
+    sw = sh * targetRatio;
+  }else{
+    sw = src.w / zoom;
+    sh = sw / targetRatio;
+  }
+
+  sw = Math.min(src.w, sw);
+  sh = Math.min(src.h, sh);
+  const maxX = Math.max(0, src.w - sw);
+  const maxY = Math.max(0, src.h - sh);
+  const sx = Math.max(0, Math.min(maxX, maxX / 2 + offsetX));
+  const sy = Math.max(0, Math.min(maxY, maxY / 2 + offsetY));
+  return {sx, sy, sw, sh};
+}
+
+function resetPositionForFrame(){
+  offsetX = 0;
+  offsetY = 0;
+}
+
+function updateFrameUI(){
+  if(image) renderPreview();
+}
+
+function renderPreview(){
+  if(!image){
+    cropCanvas.width = 1;
+    cropCanvas.height = 1;
+    previewState = null;
+    return;
+  }
+
+  const frame = currentFrame();
+  const targetRatio = frame.name === 'A5 Frame' ? frame.fileW / frame.fileH : frame.w / frame.h;
+  let boxW = MAX_PREVIEW_W;
+  let boxH = boxW / targetRatio;
+  if(boxH > MAX_PREVIEW_H){
+    boxH = MAX_PREVIEW_H;
+    boxW = boxH * targetRatio;
+  }
+  const canvasW = Math.round(Math.max(320, Math.min(MAX_PREVIEW_W, boxW)));
+  const canvasH = Math.round(Math.max(260, Math.min(MAX_PREVIEW_H, boxH)));
+  cropCanvas.width = canvasW;
+  cropCanvas.height = canvasH;
+
+  const ctx = cropCanvas.getContext('2d');
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.fillStyle = '#ddd';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  const rect = getCropRect();
+  const source = makeOrientedCanvas();
+  const scale = canvasW / rect.sw;
+  const drawW = source.width * scale;
+  const drawH = source.height * scale;
+  const drawX = -rect.sx * scale;
+  const drawY = -rect.sy * scale;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, canvasW, canvasH);
+  ctx.clip();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, drawX, drawY, drawW, drawH);
+  ctx.restore();
+
+  // Subtle crop boundary only; the preview itself is the selected print area.
+  ctx.strokeStyle = 'rgba(255,255,255,.95)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, canvasW - 3, canvasH - 3);
+
+  previewState = {source, rect};
+}
+
+function updateZoomUI(){
+  const v = Number(zoomSlider.value);
+  zoomValue.textContent = `${v}%`;
+}
+
+function resetZoom(){
+  zoom = 1;
+  zoomSlider.value = '0';
+  updateZoomUI();
+}
+
+photoInput.addEventListener('change', async function(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(!/^image\/(jpeg|png)$/i.test(file.type)){
+    fileInfo.textContent = 'Please choose a JPG, JPEG or PNG photo.';
+    return;
+  }
+
+  if(objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl = URL.createObjectURL(file);
+  exifOrientation = await readExifOrientation(file);
+
+  const nextImage = new Image();
+  nextImage.onload = function(){
+    image = nextImage;
+    resetPositionForFrame();
+    resetZoom();
+    fileInfo.textContent = `${file.name} • ${Math.round(file.size / 1024)} KB • ${image.naturalWidth} × ${image.naturalHeight}px`;
+    zoomSlider.disabled = false;
+    pdfBtn.disabled = false;
+    renderPreview();
+  };
+  nextImage.onerror = function(){
+    image = null;
+    zoomSlider.disabled = true;
+    pdfBtn.disabled = true;
+    fileInfo.textContent = 'The selected photo could not be loaded.';
+  };
+  nextImage.src = objectUrl;
+});
+
+frameSelect.addEventListener('change', function(){
+  resetPositionForFrame();
+  updateFrameUI();
+});
+zoomSlider.addEventListener('input', function(){
+  const v = Number(zoomSlider.value);
+  zoom = 1 + v / 100 * 2;
+  updateZoomUI();
+  renderPreview();
+});
+
+cropCanvas.addEventListener('pointerdown', function(e){
+  if(!image) return;
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  startOffsetX = offsetX;
+  startOffsetY = offsetY;
+  cropCanvas.classList.add('dragging');
+  try{ cropCanvas.setPointerCapture(e.pointerId); }catch(_){ }
+});
+
+cropCanvas.addEventListener('pointermove', function(e){
+  if(!dragging || !image) return;
+  const rect = getCropRect();
+  const src = getSourceSize();
+  const frame = currentFrame();
+  const targetRatio = frame.name === 'A5 Frame' ? frame.fileW / frame.fileH : frame.w / frame.h;
+  let sw, sh;
+  if(src.w / src.h > targetRatio){
+    sh = src.h / zoom;
+    sw = sh * targetRatio;
+  }else{
+    sw = src.w / zoom;
+    sh = sw / targetRatio;
+  }
+  sw = Math.min(src.w, sw);
+  sh = Math.min(src.h, sh);
+  const maxX = Math.max(0, src.w - sw);
+  const maxY = Math.max(0, src.h - sh);
+  const canvasRect = cropCanvas.getBoundingClientRect();
+  if(!canvasRect.width || !canvasRect.height) return;
+
+  // Pointer movement maps to source pixels. Direction is natural: drag right -> photo/crop moves right.
+  const scaleX = sw / canvasRect.width;
+  const scaleY = sh / canvasRect.height;
+  offsetX = startOffsetX - (e.clientX - dragStartX) * scaleX;
+  offsetY = startOffsetY - (e.clientY - dragStartY) * scaleY;
+  offsetX = Math.max(-maxX / 2, Math.min(maxX / 2, offsetX));
+  offsetY = Math.max(-maxY / 2, Math.min(maxY / 2, offsetY));
+  renderPreview();
+});
+
+function stopDragging(e){
+  if(!dragging) return;
+  dragging = false;
+  cropCanvas.classList.remove('dragging');
+  try{ cropCanvas.releasePointerCapture(e.pointerId); }catch(_){ }
+}
+cropCanvas.addEventListener('pointerup', stopDragging);
+cropCanvas.addEventListener('pointercancel', stopDragging);
+cropCanvas.addEventListener('lostpointercapture', function(){ dragging = false; cropCanvas.classList.remove('dragging'); });
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
+
+function buildPrintCanvas(){
+  if(!image) throw new Error('No photo loaded.');
+  const frame = currentFrame();
+  const outputSize = correctedSize(frame);
+  const pageW = cmToPx(A4_W_CM);
+  const pageH = cmToPx(A4_H_CM);
+  const photoW = cmToPx(outputSize.w);
+  const photoH = cmToPx(outputSize.h);
+  if(photoW > pageW || photoH > pageH) throw new Error('The selected frame does not fit on A4.');
+
+  const page = document.createElement('canvas');
+  page.width = pageW;
+  page.height = pageH;
+  const ctx = page.getContext('2d', {alpha:false});
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, pageW, pageH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const source = previewState ? previewState.source : makeOrientedCanvas();
+  const crop = getCropRect();
+  const x = Math.round((pageW - photoW) / 2);
+  const y = Math.round((pageH - photoH) / 2);
+  ctx.drawImage(source, crop.sx, crop.sy, crop.sw, crop.sh, x, y, photoW, photoH);
+
+  return {page, pageW, pageH, photoW, photoH, x, y, source, crop};
+}
+
+function buildPdf(printData){
+  const frame = currentFrame();
+  // fileW/fileH are raster dimensions only. Physical PDF placement must use
+  // the actual frame dimensions (frame.w/frame.h) with no extra scaling.
+  const physicalSize = {w: frame.w, h: frame.h};
+
+  const photoCanvas = document.createElement('canvas');
+  photoCanvas.width = printData.photoW;
+  photoCanvas.height = printData.photoH;
+
+  const photoCtx = photoCanvas.getContext('2d', {alpha:false});
+  photoCtx.imageSmoothingEnabled = true;
+  photoCtx.imageSmoothingQuality = 'high';
+  photoCtx.fillStyle = '#fff';
+  photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+
+  const source = previewState ? previewState.source : makeOrientedCanvas();
+  const crop = getCropRect();
+
+  photoCtx.drawImage(
+    source,
+    crop.sx, crop.sy, crop.sw, crop.sh,
+    0, 0, printData.photoW, printData.photoH
+  );
+
+  const jpegDataUrl = photoCanvas.toDataURL('image/jpeg', 0.96);
+  const base64 = jpegDataUrl.split(',')[1];
+  const binary = atob(base64);
+  const imageBytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) imageBytes[i] = binary.charCodeAt(i);
+
+  // Explicit PDF geometry in points. The PDF page is always true A4:
+  // 21 × 29.7 cm portrait. Physical frame placement uses frame.w/frame.h.
+  // fileW/fileH affect only the raster image resolution, never its physical size.
+  const PT_PER_CM = 72 / 2.54;
+  const PW = A4_W_CM * PT_PER_CM;
+  const PH = A4_H_CM * PT_PER_CM;
+  const w = physicalSize.w * PT_PER_CM;
+  const h = physicalSize.h * PT_PER_CM;
+  const x = (A4_W_CM - physicalSize.w) / 2 * PT_PER_CM;
+  const y = (A4_H_CM - physicalSize.h) / 2 * PT_PER_CM;
+
+  const content = `q\n${w} 0 0 ${h} ${x} ${y} cm\n/Im0 Do\nQ`;
+
+  const objects = [];
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objects[2] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+  objects[3] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`;
+  objects[4] = `<< /Type /XObject /Subtype /Image /Width ${photoCanvas.width} /Height ${photoCanvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>`;
+  objects[5] = `<< /Length ${content.length} >>`;
+
+  const objectCount = 5;
+  const chunks = [];
+  const offsets = new Array(objectCount + 1).fill(0);
+  let byteLength = 0;
+
+  const addText = text => {
+    chunks.push(text);
+    byteLength += new TextEncoder().encode(text).length;
+  };
+  const addBytes = bytes => {
+    chunks.push(bytes);
+    byteLength += bytes.length;
+  };
+
+  addText('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+
+  for(let i=1;i<=objectCount;i++){
+    offsets[i] = byteLength;
+    addText(`${i} 0 obj\n`);
+
+    if(i === 4){
+      addText(`${objects[i]}\nstream\n`);
+      addBytes(imageBytes);
+      addText('\nendstream\nendobj\n');
+    }else if(i === 5){
+      addText(`${objects[i]}\nstream\n${content}\nendstream\nendobj\n`);
+    }else{
+      addText(`${objects[i]}\nendobj\n`);
+    }
+  }
+
+  const xrefOffset = byteLength;
+  addText(`xref\n0 ${objectCount + 1}\n`);
+  addText('0000000000 65535 f \n');
+  for(let i=1;i<=objectCount;i++){
+    addText(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);
+  }
+  addText(`trailer\n<< /Size ${objectCount + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+  return new Blob(chunks, {type:'application/pdf'});
+}
+
+pdfBtn.addEventListener('click', function(){
+  if(!image) return;
+  pdfBtn.disabled = true;
+  try{
+    const printData = buildPrintCanvas();
+    const pdf = buildPdf(printData);
+    downloadBlob(pdf, 'print-ready-photo-A4.pdf');
+  }catch(err){
+    console.error(err);
+    alert('PDF generation failed. Please try the photo again.');
+  }finally{
+    pdfBtn.disabled = false;
+  }
+});
+
+updateZoomUI();
+updateFrameUI();
+})();
+</script>
+
+</div>
+
 <script>
 
 /* =========================================================
@@ -2257,14 +3351,16 @@ function showMainTab(tab){
     priceList:document.getElementById("mainPriceListView"),
     giftIdeas:document.getElementById("mainGiftIdeasView"),
     shipping:document.getElementById("mainShippingView"),
-    invoice:document.getElementById("mainInvoiceView")
+    invoice:document.getElementById("mainInvoiceView"),
+    photoPrintTool:document.getElementById("mainPhotoPrintView")
   };
 
   const buttons={
     priceList:document.getElementById("mainPriceTab"),
     giftIdeas:document.getElementById("mainGiftTab"),
     shipping:document.getElementById("mainShippingTab"),
-    invoice:document.getElementById("mainInvoiceTab")
+    invoice:document.getElementById("mainInvoiceTab"),
+    photoPrintTool:document.getElementById("mainPhotoPrintTab")
   };
 
   Object.keys(views).forEach(key=>{
