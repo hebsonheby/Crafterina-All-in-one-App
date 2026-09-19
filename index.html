@@ -5997,338 +5997,147 @@ function updateInvoicePreviewItems(){
 }
 
 /* =========================================================
-   INVOICE HISTORY
+   INVOICE HISTORY — SUPABASE SHARED STORAGE
 ========================================================= */
 
-const INVOICE_HISTORY_KEY=
-  "craft_invoices_history";
+const SUPABASE_URL = "https://mxvanrbdeumvysjmfopq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GjuwLta3SYPirjz7zTVoBg_QmQjI8Sy";
+const BUSINESS_INVOICES_URL = `${SUPABASE_URL}/rest/v1/business_invoices`;
 
-function getInvoiceHistory(){
-
-  return JSON.parse(
-    localStorage.getItem(
-      INVOICE_HISTORY_KEY
-    )
-  )||[];
-
-}
-
-function setInvoiceHistory(history){
-
-  localStorage.setItem(
-    INVOICE_HISTORY_KEY,
-    JSON.stringify(history)
-  );
-
-}
-
-function saveInvoiceToHistory(){
-
-  const history=
-    getInvoiceHistory();
-
-  const invoiceNumber=
-    document.getElementById(
-      "invNo"
-    ).value.trim();
-
-  const customer=
-    document.getElementById(
-      "custDetails"
-    ).value.trim();
-
-  let subtotal=0;
-  let totalCost=0;
-
-  invoiceItems.forEach(item=>{
-
-    const qty=
-      Number(item.qty)||0;
-
-    const price=
-      Number(item.price)||0;
-
-    const cost=
-      Number(item.cost)||0;
-
-    subtotal+=
-      qty*price;
-
-    totalCost+=
-      qty*cost;
-
+async function supabaseRequest(url, options={}){
+  const response=await fetch(url,{
+    ...options,
+    headers:{
+      apikey:SUPABASE_PUBLISHABLE_KEY,
+      Authorization:`Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      "Content-Type":"application/json",
+      ...(options.headers||{})
+    }
   });
-
-  const serviceCharge=
-    Number(
-      document.getElementById(
-        "serviceCharge"
-      ).value
-    )||0;
-
-  const advance=
-    Number(
-      document.getElementById(
-        "advancePaid"
-      ).value
-    )||0;
-
-  const total=
-    subtotal+
-    serviceCharge;
-
-  const record={
-
-    id:String(Date.now()),
-
-    invoiceNumber,
-
-    customer,
-
-    date:getCurrentDate(),
-
-    items:
-      JSON.parse(
-        JSON.stringify(invoiceItems)
-      ),
-
-    serviceCharge,
-
-    advance,
-
-    subtotal,
-
-    total,
-
-    cost:totalCost,
-
-    profit:
-      total-totalCost
-
-  };
-
-  history.unshift(record);
-
-  setInvoiceHistory(history);
-
-  renderInvoiceHistory();
+  if(!response.ok){
+    const text=await response.text();
+    throw new Error(`Supabase request failed (${response.status}): ${text}`);
+  }
+  if(response.status===204)return null;
+  return response.json();
 }
 
-function renderInvoiceHistory(){
+function supabaseToInvoiceRecord(row){
+  return {
+    id:String(row.id),
+    invoiceNumber:row.invoice_number||"",
+    customer:row.customer||"",
+    date:row.invoice_date||"",
+    items:Array.isArray(row.items)?row.items:[],
+    serviceCharge:Number(row.service_charge)||0,
+    advance:Number(row.advance)||0,
+    subtotal:Number(row.subtotal)||0,
+    total:Number(row.total)||0,
+    cost:Number(row.cost)||0,
+    profit:Number(row.profit)||0
+  };
+}
 
-  const container=
-    document.getElementById(
-      "history-list"
-    );
+async function getInvoiceHistory(){
+  const rows=await supabaseRequest(`${BUSINESS_INVOICES_URL}?select=*&order=created_at.desc`);
+  return (rows||[]).map(supabaseToInvoiceRecord);
+}
 
-  const history=
-    getInvoiceHistory();
+async function saveInvoiceToHistory(){
+  const invoiceNumber=document.getElementById("invNo").value.trim();
+  const customer=document.getElementById("custDetails").value.trim();
+  let subtotal=0,totalCost=0;
+  invoiceItems.forEach(item=>{
+    const qty=Number(item.qty)||0, price=Number(item.price)||0, cost=Number(item.cost)||0;
+    subtotal+=qty*price; totalCost+=qty*cost;
+  });
+  const serviceCharge=Number(document.getElementById("serviceCharge").value)||0;
+  const advance=Number(document.getElementById("advancePaid").value)||0;
+  const total=subtotal+serviceCharge;
+  await supabaseRequest(BUSINESS_INVOICES_URL,{
+    method:"POST",
+    headers:{Prefer:"return=minimal"},
+    body:JSON.stringify({
+      invoice_number:invoiceNumber, customer, invoice_date:getCurrentDate(),
+      items:JSON.parse(JSON.stringify(invoiceItems)), service_charge:serviceCharge,
+      advance, subtotal, total, cost:totalCost, profit:total-totalCost
+    })
+  });
+  await renderInvoiceHistory();
+}
 
-  if(history.length===0){
-
-    container.innerHTML=`
-
-      <p style="font-size:.85rem;color:#777;">
-        No saved invoices yet.
-      </p>
-
-    `;
-
-    document.getElementById(
-      "all-time-stats"
-    ).style.display="none";
-
-    return;
-  }
-
-  container.innerHTML=
-    history.map(record=>`
-
+async function renderInvoiceHistory(){
+  const container=document.getElementById("history-list");
+  try{
+    const history=await getInvoiceHistory();
+    if(history.length===0){
+      container.innerHTML=`<p style="font-size:.85rem;color:#777;">No saved invoices yet.</p>`;
+      document.getElementById("all-time-stats").style.display="none";
+      return;
+    }
+    container.innerHTML=history.map(record=>`
       <div class="invoice-history-item">
-
         <div>
-
-          <strong>
-            ${escapeHtml(
-              record.invoiceNumber
-                ?`CRF${record.invoiceNumber}`
-                :"Invoice"
-            )}
-          </strong>
-
-          <br>
-
-          ${escapeHtml(
-            record.customer||"No customer"
-          )}
-
-          <br>
-
-          ₹${formatMoney(record.total)}
-
-          <br>
-
-          <span style="color:#777;">
-            ${escapeHtml(record.date||"")}
-          </span>
-
+          <strong>${escapeHtml(record.invoiceNumber?`CRF${record.invoiceNumber}`:"Invoice")}</strong><br>
+          ${escapeHtml(record.customer||"No customer")}<br>
+          ₹${formatMoney(record.total)}<br>
+          <span style="color:#777;">${escapeHtml(record.date||"")}</span>
         </div>
-
         <div class="invoice-history-actions">
-
-          <button
-            class="invoice-btn-sm invoice-btn-load"
-            onclick="loadInvoice('${escapeHtml(record.id)}')"
-          >
-            Load
-          </button>
-
-          <button
-            class="invoice-btn-sm invoice-btn-del"
-            onclick="deleteInvoice('${escapeHtml(record.id)}')"
-          >
-            Delete
-          </button>
-
+          <button class="invoice-btn-sm invoice-btn-load" onclick="loadInvoice('${escapeHtml(record.id)}')">Load</button>
+          <button class="invoice-btn-sm invoice-btn-del" onclick="deleteInvoice('${escapeHtml(record.id)}')">Delete</button>
         </div>
-
       </div>
-
     `).join("");
-
-  updateAllTimeStats(history);
+    updateAllTimeStats(history);
+  }catch(error){
+    console.error("Unable to load invoice history:",error);
+    container.innerHTML=`<p style="font-size:.85rem;color:#b44;">Unable to load saved invoices. Please check your connection and try again.</p>`;
+    document.getElementById("all-time-stats").style.display="none";
+  }
 }
 
 function updateAllTimeStats(history){
-
-  const stats=
-    document.getElementById(
-      "all-time-stats"
-    );
-
-  if(!history.length){
-
-    stats.style.display="none";
-    return;
-
-  }
-
-  let revenue=0;
-  let cost=0;
-
-  history.forEach(record=>{
-
-    revenue+=
-      Number(record.total)||0;
-
-    cost+=
-      Number(record.cost)||0;
-
-  });
-
-  const profit=
-    revenue-cost;
-
-  stats.innerHTML=`
-
-    <h4>
-      📊 All-Time Stats
-    </h4>
-
-    <div class="invoice-profit-row">
-      <span>Revenue:</span>
-      <span>₹${formatMoney(revenue)}</span>
-    </div>
-
-    <div class="invoice-profit-row">
-      <span>Cost:</span>
-      <span>₹${formatMoney(cost)}</span>
-    </div>
-
-    <div class="invoice-profit-row invoice-profit-total">
-      <span>Profit:</span>
-      <span>₹${formatMoney(profit)}</span>
-    </div>
-
-  `;
-
+  const stats=document.getElementById("all-time-stats");
+  if(!history.length){stats.style.display="none";return;}
+  let revenue=0,cost=0;
+  history.forEach(record=>{revenue+=Number(record.total)||0;cost+=Number(record.cost)||0;});
+  const profit=revenue-cost;
+  stats.innerHTML=`<h4>📊 All-Time Stats</h4>
+    <div class="invoice-profit-row"><span>Revenue:</span><span>₹${formatMoney(revenue)}</span></div>
+    <div class="invoice-profit-row"><span>Cost:</span><span>₹${formatMoney(cost)}</span></div>
+    <div class="invoice-profit-row invoice-profit-total"><span>Profit:</span><span>₹${formatMoney(profit)}</span></div>`;
   stats.style.display="block";
 }
 
-function loadInvoice(id){
-
-  const history=
-    getInvoiceHistory();
-
-  const record=
-    history.find(
-      item=>item.id===id
-    );
-
-  if(!record)return;
-
-  document.getElementById(
-    "invNo"
-  ).value=
-    record.invoiceNumber||"";
-
-  document.getElementById(
-    "custDetails"
-  ).value=
-    record.customer||"";
-
-  document.getElementById(
-    "serviceCharge"
-  ).value=
-    record.serviceCharge||0;
-
-  document.getElementById(
-    "advancePaid"
-  ).value=
-    record.advance||0;
-
-  invoiceItems=
-    JSON.parse(
-      JSON.stringify(
-        record.items||[]
-      )
-    );
-
-  if(invoiceItems.length===0){
-
-    invoiceItems=[{
-      name:"",
-      qty:1,
-      cost:"",
-      price:""
-    }];
-
+async function loadInvoice(id){
+  try{
+    const rows=await supabaseRequest(`${BUSINESS_INVOICES_URL}?select=*&id=eq.${encodeURIComponent(id)}&limit=1`);
+    const record=rows&&rows[0]?supabaseToInvoiceRecord(rows[0]):null;
+    if(!record)return;
+    document.getElementById("invNo").value=record.invoiceNumber||"";
+    document.getElementById("custDetails").value=record.customer||"";
+    document.getElementById("serviceCharge").value=record.serviceCharge||0;
+    document.getElementById("advancePaid").value=record.advance||0;
+    invoiceItems=JSON.parse(JSON.stringify(record.items||[]));
+    if(invoiceItems.length===0)invoiceItems=[{name:"",qty:1,cost:"",price:""}];
+    renderInvoiceItemInputs();
+    updateInvoice();
+  }catch(error){
+    console.error("Unable to load invoice:",error);
+    alert("Unable to load this invoice. Please check your connection and try again.");
   }
-
-  renderInvoiceItemInputs();
-
-  updateInvoice();
 }
 
-function deleteInvoice(id){
-
-  if(
-    !confirm(
-      "Delete this saved invoice?"
-    )
-  ){
-    return;
+async function deleteInvoice(id){
+  if(!confirm("Delete this saved invoice?"))return;
+  try{
+    await supabaseRequest(`${BUSINESS_INVOICES_URL}?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:{Prefer:"return=minimal"}});
+    await renderInvoiceHistory();
+  }catch(error){
+    console.error("Unable to delete invoice:",error);
+    alert("Unable to delete this invoice. Please check your connection and try again.");
   }
-
-  const history=
-    getInvoiceHistory()
-      .filter(
-        item=>item.id!==id
-      );
-
-  setInvoiceHistory(history);
-
-  renderInvoiceHistory();
 }
 
 /* =========================================================
@@ -6350,7 +6159,13 @@ async function generateInvoiceImage(){
     Save the current invoice into history first.
   */
 
-  saveInvoiceToHistory();
+  try{
+    await saveInvoiceToHistory();
+  }catch(error){
+    console.error("Unable to save invoice:",error);
+    alert("Unable to save the invoice. Please check your connection and try again.");
+    return;
+  }
 
   const invoiceCard=
     document.getElementById(
