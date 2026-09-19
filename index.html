@@ -6019,7 +6019,13 @@ async function supabaseRequest(url, options={}){
     throw new Error(`Supabase request failed (${response.status}): ${text}`);
   }
   if(response.status===204)return null;
-  return response.json();
+  const responseText=await response.text();
+  if(!responseText.trim())return null;
+  try{
+    return JSON.parse(responseText);
+  }catch(error){
+    throw new Error(`Supabase returned an invalid response: ${responseText}`);
+  }
 }
 
 function supabaseToInvoiceRecord(row){
@@ -6058,7 +6064,7 @@ async function saveInvoiceToHistory(){
     method:"POST",
     headers:{Prefer:"return=minimal"},
     body:JSON.stringify({
-      invoice_number:invoiceNumber, customer, invoice_date:getCurrentDate(),
+      invoice_number:invoiceNumber, customer, invoice_date:(()=>{const d=getCurrentDate().trim(); const m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : d;})(),
       items:JSON.parse(JSON.stringify(invoiceItems)), service_charge:serviceCharge,
       advance, subtotal, total, cost:totalCost, profit:total-totalCost
     })
@@ -6146,19 +6152,12 @@ async function deleteInvoice(id){
 
 async function generateInvoiceImage(){
 
-  /*
-    Ensure the embedded logo is assigned before html2canvas
-    captures the invoice.
-  */
-
   setInvoiceLogo();
-
   calculateInvoice();
 
   /*
-    Save the current invoice into history first.
+    Save the invoice to shared Supabase history first.
   */
-
   try{
     await saveInvoiceToHistory();
   }catch(error){
@@ -6167,47 +6166,98 @@ async function generateInvoiceImage(){
     return;
   }
 
-  const invoiceCard=
-    document.getElementById(
-      "invoice-card"
-    );
+  const invoiceCard=document.getElementById("invoice-card");
+
+  if(!invoiceCard){
+    alert("Invoice preview could not be found. Please try again.");
+    return;
+  }
 
   try{
 
-    const canvas=
-      await html2canvas(
-        invoiceCard,
-        {
-          scale:3,
-          useCORS:true,
-          allowTaint:false,
-          backgroundColor:"#F9F8F3"
+    /*
+      Make sure the invoice logo has finished loading before
+      html2canvas captures the invoice.
+    */
+    const invoiceImages=Array.from(invoiceCard.querySelectorAll("img"));
+
+    await Promise.all(
+      invoiceImages.map(img=>{
+        if(img.complete)return Promise.resolve();
+        return new Promise(resolve=>{
+          img.addEventListener("load",resolve,{once:true});
+          img.addEventListener("error",resolve,{once:true});
+        });
+      })
+    );
+
+    /*
+      If html2canvas was not loaded from the CDN, load it now.
+    */
+    if(typeof window.html2canvas!=="function"){
+      await new Promise((resolve,reject)=>{
+        const existing=document.querySelector(
+          'script[src*="html2canvas"]'
+        );
+
+        if(existing){
+          existing.addEventListener("load",resolve,{once:true});
+          existing.addEventListener("error",reject,{once:true});
+          if(typeof window.html2canvas==="function")resolve();
+          return;
         }
-      );
 
-    const image=
-      canvas.toDataURL(
-        "image/png"
-      );
+        const script=document.createElement("script");
+        script.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+        script.onload=resolve;
+        script.onerror=reject;
+        document.head.appendChild(script);
+      });
+    }
 
-    document.getElementById(
-      "modalImg"
-    ).src=image;
+    if(typeof window.html2canvas!=="function"){
+      throw new Error("html2canvas library is not available.");
+    }
 
-    document.getElementById(
-      "pdfModal"
-    ).style.display=
-      "flex";
+    let canvas;
+
+    try{
+      canvas=await window.html2canvas(invoiceCard,{
+        scale:3,
+        useCORS:true,
+        allowTaint:false,
+        imageTimeout:0,
+        backgroundColor:"#F9F8F3"
+      });
+    }catch(firstError){
+      console.warn("Primary invoice capture failed; retrying:",firstError);
+
+      /*
+        Fallback for browsers that reject an image/font while
+        html2canvas is capturing the invoice.
+      */
+      canvas=await window.html2canvas(invoiceCard,{
+        scale:2,
+        useCORS:false,
+        allowTaint:true,
+        imageTimeout:0,
+        backgroundColor:"#F9F8F3",
+        logging:false
+      });
+    }
+
+    const image=canvas.toDataURL("image/png");
+
+    document.getElementById("modalImg").src=image;
+    document.getElementById("pdfModal").style.display="flex";
 
   }catch(error){
 
-    console.error(
-      "Invoice image generation failed:",
-      error
-    );
+    console.error("Invoice image generation failed:",error);
 
     alert(
-      "Unable to generate the invoice image. Please try again."
+      "Unable to generate the invoice image. Please try again.\n\n" +
+      "Error: " + (error&&error.message ? error.message : error)
     );
 
   }
