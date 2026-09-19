@@ -1362,6 +1362,8 @@ button,input,select,textarea{font:inherit}
   }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 
 <body>
@@ -1888,7 +1890,7 @@ button,input,select,textarea{font:inherit}
       id="invNo"
       class="invoice-input"
       placeholder="e.g. 0001"
-      oninput="updateInvoice()"
+      oninput="invoiceNumberChanged(); updateInvoice()"
     >
 
   </div>
@@ -5545,6 +5547,9 @@ function generateShippingPDF(){
 ========================================================= */
 
 let invoiceItems=[];
+let currentInvoiceId=null;
+let loadedInvoiceNumber=null;
+let loadedInvoiceDate=null;
 
 /* =========================================================
    IMPORTANT LOGO FIX
@@ -6060,15 +6065,34 @@ async function saveInvoiceToHistory(){
   const serviceCharge=Number(document.getElementById("serviceCharge").value)||0;
   const advance=Number(document.getElementById("advancePaid").value)||0;
   const total=subtotal+serviceCharge;
-  await supabaseRequest(BUSINESS_INVOICES_URL,{
-    method:"POST",
-    headers:{Prefer:"return=minimal"},
-    body:JSON.stringify({
-      invoice_number:invoiceNumber, customer, invoice_date:(()=>{const d=getCurrentDate().trim(); const m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : d;})(),
-      items:JSON.parse(JSON.stringify(invoiceItems)), service_charge:serviceCharge,
-      advance, subtotal, total, cost:totalCost, profit:total-totalCost
-    })
-  });
+  const invoiceDate=currentInvoiceId&&loadedInvoiceDate
+    ? loadedInvoiceDate
+    : (()=>{const d=getCurrentDate().trim(); const m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : d;})();
+  const invoiceData={
+    invoice_number:invoiceNumber, customer, invoice_date:invoiceDate,
+    items:JSON.parse(JSON.stringify(invoiceItems)), service_charge:serviceCharge,
+    advance, subtotal, total, cost:totalCost, profit:total-totalCost
+  };
+
+  if(currentInvoiceId){
+    await supabaseRequest(`${BUSINESS_INVOICES_URL}?id=eq.${encodeURIComponent(currentInvoiceId)}`,{
+      method:"PATCH",
+      headers:{Prefer:"return=minimal"},
+      body:JSON.stringify(invoiceData)
+    });
+  }else{
+    const rows=await supabaseRequest(BUSINESS_INVOICES_URL,{
+      method:"POST",
+      headers:{Prefer:"return=representation"},
+      body:JSON.stringify(invoiceData)
+    });
+    if(rows&&rows[0]&&rows[0].id){
+      currentInvoiceId=String(rows[0].id);
+      loadedInvoiceNumber=invoiceNumber;
+      loadedInvoiceDate=invoiceDate;
+    }
+  }
+
   await renderInvoiceHistory();
 }
 
@@ -6116,11 +6140,23 @@ function updateAllTimeStats(history){
   stats.style.display="block";
 }
 
+function invoiceNumberChanged(){
+  const value=document.getElementById("invNo").value.trim();
+  if(currentInvoiceId && loadedInvoiceNumber!==null && value!==loadedInvoiceNumber){
+    currentInvoiceId=null;
+    loadedInvoiceNumber=null;
+    loadedInvoiceDate=null;
+  }
+}
+
 async function loadInvoice(id){
   try{
     const rows=await supabaseRequest(`${BUSINESS_INVOICES_URL}?select=*&id=eq.${encodeURIComponent(id)}&limit=1`);
     const record=rows&&rows[0]?supabaseToInvoiceRecord(rows[0]):null;
     if(!record)return;
+    currentInvoiceId=record.id;
+    loadedInvoiceNumber=record.invoiceNumber||"";
+    loadedInvoiceDate=record.date||null;
     document.getElementById("invNo").value=record.invoiceNumber||"";
     document.getElementById("custDetails").value=record.customer||"";
     document.getElementById("serviceCharge").value=record.serviceCharge||0;
@@ -6144,6 +6180,51 @@ async function deleteInvoice(id){
     console.error("Unable to delete invoice:",error);
     alert("Unable to delete this invoice. Please check your connection and try again.");
   }
+}
+
+/* =========================================================
+   LIVE INVOICE SYNC
+   Keeps Invoice History and All-Time Stats synchronized
+   between phones without reopening the app.
+========================================================= */
+
+let invoiceRealtimeClient=null;
+let invoiceRealtimeChannel=null;
+
+function setupInvoiceRealtime(){
+  if(invoiceRealtimeChannel || typeof window.supabase!=="object" || typeof window.supabase.createClient!=="function")return;
+
+  try{
+    invoiceRealtimeClient=window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    invoiceRealtimeChannel=invoiceRealtimeClient
+      .channel("business-invoices-live")
+      .on(
+        "postgres_changes",
+        {event:"*",schema:"public",table:"business_invoices"},
+        function(){
+          renderInvoiceHistory();
+        }
+      )
+      .subscribe();
+  }catch(error){
+    console.error("Unable to start invoice Realtime:",error);
+    invoiceRealtimeClient=null;
+    invoiceRealtimeChannel=null;
+  }
+}
+
+function setupInvoiceRealtimeFallback(){
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden)renderInvoiceHistory();
+  });
+
+  window.addEventListener("focus",function(){
+    renderInvoiceHistory();
+  });
 }
 
 /* =========================================================
@@ -6367,6 +6448,8 @@ document.addEventListener(
     updateInvoice();
 
     renderInvoiceHistory();
+    setupInvoiceRealtime();
+    setupInvoiceRealtimeFallback();
 
     /*
       SAVED PRICE LISTS
@@ -6389,7 +6472,7 @@ document.addEventListener(
   const craftArenaAIFrame = document.getElementById("craftArenaAIFrame");
   if (!craftArenaAIFrame) return;
 
-  craftArenaAIFrame.srcdoc = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Craft Crafterina AI</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap\" rel=\"stylesheet\">\n\n<style>\n  * { box-sizing: border-box; }\n\n  :root {\n    --app-font: 'Manrope', 'Segoe UI', Arial, sans-serif;\n    --sage: #AEB99A;\n    --sage-dark: #7D8B69;\n    --sage-deep: #657354;\n    --cream: #F7F5ED;\n    --cream-light: #FBFAF5;\n    --white: #FFFFFF;\n    --text: #4D5443;\n    --text-light: #777D6D;\n    --line: #DEE3D4;\n    --shadow: 0 6px 24px rgba(70,80,55,.09);\n  }\n\n  body {\n    margin: 0;\n    font-family: var(--app-font);\n    background: var(--cream);\n    color: var(--text);\n    height: 100vh;\n    overflow: hidden;\n  }\n\n  .app { height: 100vh; display: flex; }\n\n  .sidebar {\n    width: 270px;\n    background: var(--white);\n    border-right: 1px solid var(--line);\n    display: flex;\n    flex-direction: column;\n    padding: 16px;\n  }\n\n  .brand {\n    font-size: 19px;\n    font-weight: 800;\n    color: var(--sage-deep);\n    margin-bottom: 16px;\n  }\n\n  .new-chat {\n    width: 100%;\n    border: 1px solid var(--line);\n    background: var(--cream-light);\n    color: var(--sage-deep);\n    border-radius: 10px;\n    padding: 11px 13px;\n    font-size: 14px;\n    font-weight: 700;\n    cursor: pointer;\n    text-align: left;\n  }\n\n  .new-chat:hover { background: #EEF1E7; }\n\n  .sidebar-note {\n    margin-top: auto;\n    color: var(--text-light);\n    font-size: 12px;\n    line-height: 1.5;\n  }\n\n  .main {\n    flex: 1;\n    min-width: 0;\n    display: flex;\n    flex-direction: column;\n  }\n\n  .topbar {\n    height: 58px;\n    background: var(--sage);\n    color: #fff;\n    border-bottom: 1px solid var(--sage-dark);\n    display: flex;\n    align-items: center;\n    padding: 0 22px;\n    font-family: var(--app-font);\n    font-size: 24px;\n    line-height: 1.2;\n    font-weight: 800;\n  }\n\n  .chat {\n    flex: 1;\n    overflow-y: auto;\n    padding: 28px 20px 120px;\n  }\n\n  .messages { max-width: 850px; margin: 0 auto; }\n\n  .welcome {\n    text-align: center;\n    margin: 12vh auto 0;\n    max-width: 600px;\n  }\n\n  .welcome h1 {\n    margin: 0 0 10px;\n    font-size: 30px;\n    font-weight: 800;\n    color: var(--sage-deep);\n  }\n\n  .welcome p {\n    color: var(--text-light);\n    margin: 0;\n    line-height: 1.6;\n  }\n\n  .message {\n    display: flex;\n    margin: 0 0 24px;\n    gap: 12px;\n  }\n\n  .message.user { justify-content: flex-end; }\n\n  .bubble {\n    max-width: 78%;\n    padding: 12px 15px;\n    border-radius: 14px;\n    line-height: 1.55;\n    white-space: pre-wrap;\n    overflow-wrap: anywhere;\n  }\n\n  .message.user .bubble {\n    background: var(--sage-dark);\n    color: #fff;\n    border-bottom-right-radius: 5px;\n    box-shadow: var(--shadow);\n  }\n\n  .message.assistant .bubble {\n    background: var(--white);\n    color: var(--text);\n    border: 1px solid var(--line);\n    border-bottom-left-radius: 5px;\n    box-shadow: var(--shadow);\n  }\n\n  .composer-wrap {\n    position: fixed;\n    left: 270px;\n    right: 0;\n    bottom: 0;\n    padding: 14px 20px 18px;\n    background: linear-gradient(transparent, var(--cream) 22%);\n  }\n\n  .composer {\n    max-width: 850px;\n    margin: 0 auto;\n    display: flex;\n    gap: 9px;\n    background: var(--white);\n    border: 1px solid var(--line);\n    border-radius: 15px;\n    padding: 8px;\n    box-shadow: var(--shadow);\n  }\n\n  textarea {\n    flex: 1;\n    border: 0;\n    outline: 0;\n    resize: none;\n    font: inherit;\n    color: var(--text);\n    background: transparent;\n    padding: 8px 9px;\n    min-height: 42px;\n    max-height: 130px;\n  }\n\n  textarea::placeholder { color: #A2A69A; }\n\n  .send {\n    width: 45px;\n    height: 45px;\n    border: 0;\n    border-radius: 11px;\n    background: var(--sage-dark);\n    color: #fff;\n    cursor: pointer;\n    font-size: 18px;\n    font-weight: 800;\n  }\n\n  .send:hover { background: var(--sage-deep); }\n\n  .send:disabled {\n    opacity: .45;\n    cursor: default;\n  }\n\n  .status {\n    max-width: 850px;\n    margin: 0 auto 6px;\n    font-size: 12px;\n    color: var(--text-light);\n    min-height: 16px;\n  }\n\n  .typing {\n    color: var(--text-light);\n    font-size: 14px;\n  }\n\n  .error {\n    color: #9D5D57;\n    background: #F3E8E6;\n    border: 1px solid #E4C8C3;\n    padding: 10px 12px;\n    border-radius: 10px;\n    white-space: pre-wrap;\n  }\n\n  @media (max-width: 700px) {\n    .sidebar { display: none; }\n    .topbar { padding: 0 16px; }\n    .chat { padding-left: 12px; padding-right: 12px; }\n    .bubble { max-width: 90%; }\n    .composer-wrap { left: 0; padding: 10px 10px 12px; }\n    .welcome h1 { font-size: 25px; }\n  }\n</style>\n\n</head>\n<body>\n\n<div class=\"app\">\n  <aside class=\"sidebar\">\n    <div class=\"brand\">Craft Crafterina AI</div>\n    <button class=\"new-chat\" id=\"newChatBtn\">＋ New chat</button>\n    <div class=\"sidebar-note\">\n      Private business assistant<br>\n      Connected to your Craft Crafterina AI database.\n    </div>\n  </aside>\n\n  <main class=\"main\">\n    <header class=\"topbar\">Craft Crafterina AI</header>\n\n    <section class=\"chat\" id=\"chat\">\n      <div class=\"messages\" id=\"messages\">\n        <div class=\"welcome\" id=\"welcome\">\n          <h1>How can I help?</h1>\n          <p>\n            Ask about customers, purchases, sales, products, invoices,\n            prices, quantities, or anything in your Craft Crafterina business data.\n          </p>\n        </div>\n      </div>\n    </section>\n\n    <div class=\"composer-wrap\">\n      <div class=\"status\" id=\"status\"></div>\n      <form class=\"composer\" id=\"composer\">\n        <textarea id=\"messageInput\" placeholder=\"Message Craft Crafterina AI...\" rows=\"1\"></textarea>\n        <button class=\"send\" id=\"sendBtn\" type=\"submit\" aria-label=\"Send\">↑</button>\n      </form>\n    </div>\n  </main>\n</div>\n\n<script>\n/*\n  ============================================================\n  CONFIGURATION\n  ============================================================\n\n  Replace ONLY these two values.\n\n  SUPABASE_URL:\n    Your Supabase project URL.\n\n  SUPABASE_PUBLISHABLE_KEY:\n    Your Supabase Publishable key.\n\n  NEVER put your Supabase Secret key or OpenRouter API key here.\n*/\n\nconst SUPABASE_URL = \"https://mxvanrbdeumvysjmfopq.supabase.co\";\nconst SUPABASE_PUBLISHABLE_KEY = \"sb_publishable_GjuwLta3SYPirjz7zTVoBg_QmQjI8Sy\";\n\nconst FUNCTION_URL =\n  SUPABASE_URL.replace(/\\/$/, \"\") + \"/functions/v1/ask-ai\";\n\nlet conversationId = null;\nlet isSending = false;\n\nconst messagesEl = document.getElementById(\"messages\");\nconst welcomeEl = document.getElementById(\"welcome\");\nconst inputEl = document.getElementById(\"messageInput\");\nconst sendBtn = document.getElementById(\"sendBtn\");\nconst composer = document.getElementById(\"composer\");\nconst statusEl = document.getElementById(\"status\");\nconst newChatBtn = document.getElementById(\"newChatBtn\");\n\nfunction addMessage(role, text) {\n  if (welcomeEl) {\n    welcomeEl.remove();\n  }\n\n  const row = document.createElement(\"div\");\n  row.className = \"message \" + role;\n\n  const bubble = document.createElement(\"div\");\n  bubble.className = \"bubble\";\n\n  // Render the small amount of Markdown the AI commonly uses.\n  // This converts **bold** text to real bold text instead of showing\n  // the asterisks in the chat.\n  const escaped = text\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n\n  bubble.innerHTML = escaped\n    .replace(/\\*\\*(.+?)\\*\\*/g, \"<strong>$1</strong>\")\n    .replace(/\\n/g, \"<br>\");\n\n  row.appendChild(bubble);\n  messagesEl.appendChild(row);\n\n  const chat = document.getElementById(\"chat\");\n  chat.scrollTop = chat.scrollHeight;\n}\n\nfunction setSending(value) {\n  isSending = value;\n  sendBtn.disabled = value;\n  inputEl.disabled = value;\n  statusEl.textContent = value ? \"Thinking...\" : \"\";\n}\n\nfunction resetChat() {\n  conversationId = null;\n  messagesEl.innerHTML = `\n    <div class=\"welcome\" id=\"welcome\">\n      <h1>How can I help?</h1>\n      <p>\n        Ask about customers, purchases, sales, products, invoices,\n        prices, quantities, or anything in your Craft Crafterina business data.\n      </p>\n    </div>\n  `;\n  statusEl.textContent = \"\";\n  inputEl.value = \"\";\n  inputEl.focus();\n}\n\nasync function sendMessage(message) {\n  if (isSending) return;\n\n  if (\n    SUPABASE_URL.includes(\"PASTE_YOUR\") ||\n    SUPABASE_PUBLISHABLE_KEY.includes(\"PASTE_YOUR\")\n  ) {\n    addMessage(\n      \"assistant\",\n      \"Please add your Supabase URL and Publishable key in the CONFIGURATION section of this HTML file first.\"\n    );\n    return;\n  }\n\n  addMessage(\"user\", message);\n  setSending(true);\n\n  try {\n    const requestBody = {\n      message: message\n    };\n\n    if (conversationId) {\n      requestBody.conversation_id = conversationId;\n    }\n\n    const response = await fetch(FUNCTION_URL, {\n      method: \"POST\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n\n        // Supabase publishable key.\n        \"apikey\": SUPABASE_PUBLISHABLE_KEY,\n\n        // Your current ask-ai function checks for a Bearer header.\n        // The function does NOT use this value as the database secret.\n        \"Authorization\": \"Bearer \" + SUPABASE_PUBLISHABLE_KEY\n      },\n      body: JSON.stringify(requestBody)\n    });\n\n    const rawText = await response.text();\n\n    let data;\n\n    try {\n      data = JSON.parse(rawText);\n    } catch {\n      throw new Error(\n        \"The server returned an invalid response:\\n\\n\" + rawText\n      );\n    }\n\n    if (!response.ok) {\n      throw new Error(data.error || \"Request failed.\");\n    }\n\n    if (data.conversation_id) {\n      conversationId = data.conversation_id;\n    }\n\n    if (!data.answer) {\n      throw new Error(\"The AI returned no answer.\");\n    }\n\n    addMessage(\"assistant\", data.answer);\n\n  } catch (error) {\n    console.error(error);\n\n    addMessage(\n      \"assistant\",\n      \"Sorry, something went wrong:\\n\\n\" +\n      (error.message || \"Unknown error\")\n    );\n  } finally {\n    setSending(false);\n    inputEl.disabled = false;\n    inputEl.focus();\n  }\n}\n\ncomposer.addEventListener(\"submit\", async (event) => {\n  event.preventDefault();\n\n  const message = inputEl.value.trim();\n\n  if (!message || isSending) return;\n\n  inputEl.value = \"\";\n  inputEl.style.height = \"auto\";\n\n  await sendMessage(message);\n});\n\ninputEl.addEventListener(\"keydown\", (event) => {\n  if (event.key === \"Enter\" && !event.shiftKey) {\n    event.preventDefault();\n    composer.requestSubmit();\n  }\n});\n\ninputEl.addEventListener(\"input\", () => {\n  inputEl.style.height = \"auto\";\n  inputEl.style.height =\n    Math.min(inputEl.scrollHeight, 130) + \"px\";\n});\n\nnewChatBtn.addEventListener(\"click\", resetChat);\n\ninputEl.focus();\n<\/script>\n\n</body>\n</html>\n";
+  craftArenaAIFrame.srcdoc = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Craft Crafterina AI</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap\" rel=\"stylesheet\">\n\n<style>\n  * { box-sizing: border-box; }\n\n  :root {\n    --app-font: 'Manrope', 'Segoe UI', Arial, sans-serif;\n    --sage: #AEB99A;\n    --sage-dark: #7D8B69;\n    --sage-deep: #657354;\n    --cream: #F7F5ED;\n    --cream-light: #FBFAF5;\n    --white: #FFFFFF;\n    --text: #4D5443;\n    --text-light: #777D6D;\n    --line: #DEE3D4;\n    --shadow: 0 6px 24px rgba(70,80,55,.09);\n  }\n\n  body {\n    margin: 0;\n    font-family: var(--app-font);\n    background: var(--cream);\n    color: var(--text);\n    height: 100vh;\n    overflow: hidden;\n  }\n\n  .app { height: 100vh; display: flex; }\n\n  .sidebar {\n    width: 270px;\n    background: var(--white);\n    border-right: 1px solid var(--line);\n    display: flex;\n    flex-direction: column;\n    padding: 16px;\n  }\n\n  .brand {\n    font-size: 19px;\n    font-weight: 800;\n    color: var(--sage-deep);\n    margin-bottom: 16px;\n  }\n\n  .new-chat {\n    width: 100%;\n    border: 1px solid var(--line);\n    background: var(--cream-light);\n    color: var(--sage-deep);\n    border-radius: 10px;\n    padding: 11px 13px;\n    font-size: 14px;\n    font-weight: 700;\n    cursor: pointer;\n    text-align: left;\n  }\n\n  .new-chat:hover { background: #EEF1E7; }\n\n  .sidebar-note {\n    margin-top: auto;\n    color: var(--text-light);\n    font-size: 12px;\n    line-height: 1.5;\n  }\n\n  .main {\n    flex: 1;\n    min-width: 0;\n    display: flex;\n    flex-direction: column;\n  }\n\n  .topbar {\n    height: 58px;\n    background: var(--sage);\n    color: #fff;\n    border-bottom: 1px solid var(--sage-dark);\n    display: flex;\n    align-items: center;\n    padding: 0 22px;\n    font-family: var(--app-font);\n    font-size: 24px;\n    line-height: 1.2;\n    font-weight: 800;\n  }\n\n  .chat {\n    flex: 1;\n    overflow-y: auto;\n    padding: 28px 20px 120px;\n  }\n\n  .messages { max-width: 850px; margin: 0 auto; }\n\n  .welcome {\n    text-align: center;\n    margin: 12vh auto 0;\n    max-width: 600px;\n  }\n\n  .welcome h1 {\n    margin: 0 0 10px;\n    font-size: 30px;\n    font-weight: 800;\n    color: var(--sage-deep);\n  }\n\n  .welcome p {\n    color: var(--text-light);\n    margin: 0;\n    line-height: 1.6;\n  }\n\n  .message {\n    display: flex;\n    margin: 0 0 24px;\n    gap: 12px;\n  }\n\n  .message.user { justify-content: flex-end; }\n\n  .bubble {\n    max-width: 78%;\n    padding: 12px 15px;\n    border-radius: 14px;\n    line-height: 1.55;\n    white-space: pre-wrap;\n    overflow-wrap: anywhere;\n  }\n\n  .message.user .bubble {\n    background: var(--sage-dark);\n    color: #fff;\n    border-bottom-right-radius: 5px;\n    box-shadow: var(--shadow);\n  }\n\n  .message.assistant .bubble {\n    background: var(--white);\n    color: var(--text);\n    border: 1px solid var(--line);\n    border-bottom-left-radius: 5px;\n    box-shadow: var(--shadow);\n  }\n\n  .composer-wrap {\n    position: fixed;\n    left: 270px;\n    right: 0;\n    bottom: 0;\n    padding: 14px 20px 18px;\n    background: linear-gradient(transparent, var(--cream) 22%);\n  }\n\n  .composer {\n    max-width: 850px;\n    margin: 0 auto;\n    display: flex;\n    gap: 9px;\n    background: var(--white);\n    border: 1px solid var(--line);\n    border-radius: 15px;\n    padding: 8px;\n    box-shadow: var(--shadow);\n  }\n\n  textarea {\n    flex: 1;\n    border: 0;\n    outline: 0;\n    resize: none;\n    font: inherit;\n    color: var(--text);\n    background: transparent;\n    padding: 8px 9px;\n    min-height: 42px;\n    max-height: 130px;\n  }\n\n  textarea::placeholder { color: #A2A69A; }\n\n  .send {\n    width: 45px;\n    height: 45px;\n    border: 0;\n    border-radius: 11px;\n    background: var(--sage-dark);\n    color: #fff;\n    cursor: pointer;\n    font-size: 18px;\n    font-weight: 800;\n  }\n\n  .send:hover { background: var(--sage-deep); }\n\n  .send:disabled {\n    opacity: .45;\n    cursor: default;\n  }\n\n  .status {\n    max-width: 850px;\n    margin: 0 auto 6px;\n    font-size: 12px;\n    color: var(--text-light);\n    min-height: 16px;\n  }\n\n  .typing {\n    color: var(--text-light);\n    font-size: 14px;\n  }\n\n  .error {\n    color: #9D5D57;\n    background: #F3E8E6;\n    border: 1px solid #E4C8C3;\n    padding: 10px 12px;\n    border-radius: 10px;\n    white-space: pre-wrap;\n  }\n\n  @media (max-width: 700px) {\n    .sidebar { display: none; }\n    .topbar { padding: 0 16px; }\n    .chat { padding-left: 12px; padding-right: 12px; }\n    .bubble { max-width: 90%; }\n    .composer-wrap { left: 0; padding: 10px 10px 12px; }\n    .welcome h1 { font-size: 25px; }\n  }\n</style>\n\n</head>\n<body>\n\n<div class=\"app\">\n  <aside class=\"sidebar\">\n    <div class=\"brand\">Craft Crafterina AI</div>\n    <button class=\"new-chat\" id=\"newChatBtn\">＋ New chat</button>\n    <div class=\"sidebar-note\">\n      Private business assistant<br>\n      Connected to your Craft Crafterina AI database.\n    </div>\n  </aside>\n\n  <main class=\"main\">\n    <header class=\"topbar\">Craft Crafterina AI</header>\n\n    <section class=\"chat\" id=\"chat\">\n      <div class=\"messages\" id=\"messages\">\n        <div class=\"welcome\" id=\"welcome\">\n          <h1>How can I help?</h1>\n          <p>\n            Ask about customers, purchases, sales, products, invoices,\n            prices, quantities, or anything in your Craft Crafterina business data.\n          </p>\n        </div>\n      </div>\n    </section>\n\n    <div class=\"composer-wrap\">\n      <div class=\"status\" id=\"status\"></div>\n      <form class=\"composer\" id=\"composer\">\n        <textarea id=\"messageInput\" placeholder=\"Message Craft Crafterina AI...\" rows=\"1\"></textarea>\n        <button class=\"send\" id=\"sendBtn\" type=\"submit\" aria-label=\"Send\">↑</button>\n      </form>\n    </div>\n  </main>\n</div>\n\n<script>\n/*\n  ============================================================\n  CONFIGURATION\n  ============================================================\n\n  Replace ONLY these two values.\n\n  SUPABASE_URL:\n    Your Supabase project URL.\n\n  SUPABASE_PUBLISHABLE_KEY:\n    Your Supabase Publishable key.\n\n  NEVER put your Supabase Secret key or OpenRouter API key here.\n*/\n\nconst SUPABASE_URL = \"https://mxvanrbdeumvysjmfopq.supabase.co\";\nconst SUPABASE_PUBLISHABLE_KEY = \"sb_publishable_GjuwLta3SYPirjz7zTVoBg_QmQjI8Sy\";\n\nconst FUNCTION_URL =\n  SUPABASE_URL.replace(/\\/$/, \"\") + \"/functions/v1/ask-ai\";\n\nlet conversationId = null;\nlet isSending = false;\n\nconst messagesEl = document.getElementById(\"messages\");\nconst welcomeEl = document.getElementById(\"welcome\");\nconst inputEl = document.getElementById(\"messageInput\");\nconst sendBtn = document.getElementById(\"sendBtn\");\nconst composer = document.getElementById(\"composer\");\nconst statusEl = document.getElementById(\"status\");\nconst newChatBtn = document.getElementById(\"newChatBtn\");\n\nfunction addMessage(role, text) {\n  if (welcomeEl) {\n    welcomeEl.remove();\n  }\n\n  const row = document.createElement(\"div\");\n  row.className = \"message \" + role;\n\n  const bubble = document.createElement(\"div\");\n  bubble.className = \"bubble\";\n\n  // Render the small amount of Markdown the AI commonly uses.\n  // This converts **bold** text to real bold text instead of showing\n  // the asterisks in the chat.\n  const escaped = text\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n\n  bubble.innerHTML = escaped\n    .replace(/\\*\\*(.+?)\\*\\*/g, \"<strong>$1</strong>\")\n    .replace(/\\n/g, \"<br>\");\n\n  row.appendChild(bubble);\n  messagesEl.appendChild(row);\n\n  const chat = document.getElementById(\"chat\");\n  chat.scrollTop = chat.scrollHeight;\n}\n\nfunction setSending(value) {\n  isSending = value;\n  sendBtn.disabled = value;\n  inputEl.disabled = value;\n  statusEl.textContent = value ? \"Thinking...\" : \"\";\n}\n\nfunction resetChat() {\n  conversationId = null;\n  messagesEl.innerHTML = `\n    <div class=\"welcome\" id=\"welcome\">\n      <h1>How can I help?</h1>\n      <p>\n        Ask about customers, purchases, sales, products, invoices,\n        prices, quantities, or anything in your Craft Crafterina business data.\n      </p>\n    </div>\n  `;\n  statusEl.textContent = \"\";\n  inputEl.value = \"\";\n  inputEl.focus();\n}\n\nasync function sendMessage(message) {\n  if (isSending) return;\n\n  if (\n    SUPABASE_URL.includes(\"PASTE_YOUR\") ||\n    SUPABASE_PUBLISHABLE_KEY.includes(\"PASTE_YOUR\")\n  ) {\n    addMessage(\n      \"assistant\",\n      \"Please add your Supabase URL and Publishable key in the CONFIGURATION section of this HTML file first.\"\n    );\n    return;\n  }\n\n  addMessage(\"user\", message);\n  setSending(true);\n\n  try {\n    const requestBody = {\n      message: message\n    };\n\n    if (conversationId) {\n      requestBody.conversation_id = conversationId;\n    }\n\n    const response = await fetch(FUNCTION_URL, {\n      method: \"POST\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n\n        // Supabase publishable key.\n        \"apikey\": SUPABASE_PUBLISHABLE_KEY,\n\n        // Your current ask-ai function checks for a Bearer header.\n        // The function does NOT use this value as the database secret.\n        \"Authorization\": \"Bearer \" + SUPABASE_PUBLISHABLE_KEY\n      },\n      body: JSON.stringify(requestBody)\n    });\n\n    const rawText = await response.text();\n\n    let data;\n\n    try {\n      data = JSON.parse(rawText);\n    } catch {\n      throw new Error(\n        \"The server returned an invalid response:\\n\\n\" + rawText\n      );\n    }\n\n    if (!response.ok) {\n      throw new Error(data.error || \"Request failed.\");\n    }\n\n    if (data.conversation_id) {\n      conversationId = data.conversation_id;\n    }\n\n    if (!data.answer) {\n      throw new Error(\"The AI returned no answer.\");\n    }\n\n    addMessage(\"assistant\", data.answer);\n\n  } catch (error) {\n    console.error(error);\n\n    addMessage(\n      \"assistant\",\n      \"Sorry, something went wrong:\\n\\n\" +\n      (error.message || \"Unknown error\")\n    );\n  } finally {\n    setSending(false);\n    inputEl.disabled = false;\n    inputEl.focus();\n  }\n}\n\ncomposaer.addEventListener(\"submit\", async (event) => {\n  event.preventDefault();\n\n  const message = inputEl.value.trim();\n\n  if (!message || isSending) return;\n\n  inputEl.value = \"\";\n  inputEl.style.height = \"auto\";\n\n  await sendMessage(message);\n});\n\ninputEl.addEventListener(\"keydown\", (event) => {\n  if (event.key === \"Enter\" && !event.shiftKey) {\n    event.preventDefault();\n    composer.requestSubmit();\n  }\n});\n\ninputEl.addEventListener(\"input\", () => {\n  inputEl.style.height = \"auto\";\n  inputEl.style.height =\n    Math.min(inputEl.scrollHeight, 130) + \"px\";\n});\n\nnewChatBtn.addEventListener(\"click\", resetChat);\n\ninputEl.focus();\n<\/script>\n\n</body>\n</html>\n";
 })();
 </script>
 
