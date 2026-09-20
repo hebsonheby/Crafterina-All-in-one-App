@@ -306,6 +306,23 @@ button,input,select,textarea{font:inherit}
 .qty-input-price{text-align:center}
 .unit-price-input-price{text-align:right}
 
+.price-fixed-label-price{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#F5F7F1;
+  color:var(--text);
+  font-size:13px;
+}
+
+.price-fixed-amount-price{
+  justify-content:flex-end;
+  font-weight:700;
+}
+
 .add-chocolate-btn-price,
 .add-btn-price{
   width:100%;
@@ -369,6 +386,110 @@ button,input,select,textarea{font:inherit}
 
 .photo-frame-qty-input-price{
   text-align:center;
+}
+
+/* COMPACT PHOTO FRAME / CHOCOLATE CARDS */
+.photo-frame-entries-price,
+.chocolate-entries-price{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.photo-frame-entry-price,
+.chocolate-entry-price{
+  margin:0;
+  padding:12px;
+  border:1px solid #DDE2D6;
+  border-radius:12px;
+  background:#F8F9F5;
+  min-width:0;
+}
+
+.photo-frame-fields-price,
+.chocolate-fields-price{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:stretch;
+}
+
+.photo-frame-label-wrap-price{
+  display:block;
+}
+
+.photo-frame-label-wrap-price .field-label-price,
+.chocolate-entry-price .field-label-price{
+  font-size:13px;
+  color:var(--text);
+  font-weight:600;
+  margin:0 0 7px;
+}
+
+.photo-frame-fixed-price{
+  font-size:16px;
+  font-weight:800;
+  color:var(--sage-deep);
+}
+
+.price-fixed-label-price{
+  min-height:38px;
+  padding:0 10px;
+  font-size:13px;
+}
+
+.price-fixed-amount-price{
+  justify-content:flex-start;
+  font-size:16px;
+  font-weight:800;
+}
+
+.quantity-stepper-price{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) 38px;
+  min-height:42px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  background:#fff;
+}
+
+.quantity-stepper-price button{
+  border:0;
+  background:#F0F2EA;
+  color:var(--sage-deep);
+  font-size:25px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.quantity-stepper-price button:hover{
+  background:#E5EBDD;
+}
+
+.quantity-stepper-price input{
+  width:100%;
+  min-width:0;
+  border:0;
+  border-left:1px solid var(--line);
+  border-right:1px solid var(--line);
+  border-radius:0;
+  background:#fff;
+  text-align:center;
+  font-size:17px;
+  font-weight:600;
+  color:var(--text);
+}
+
+.quantity-stepper-price input:focus{
+  outline:none;
+}
+
+@media(max-width:520px){
+  .photo-frame-entries-price,
+  .chocolate-entries-price{
+    grid-template-columns:1fr;
+  }
 }
 
 /* DELIVERY */
@@ -1375,6 +1496,148 @@ button,input,select,textarea{font:inherit}
   .photo-frame-fields-price{
     grid-template-columns:minmax(0,1fr) 58px;
   }
+}
+</style>
+
+<style id="compact-photo-chocolate-final">
+/* Final compact layout: Photo Frame and Chocolate sections only. */
+.photo-frame-submenu-price,
+.chocolate-submenu-price{
+  margin-top:8px;
+  padding:9px;
+  border-radius:9px;
+}
+
+.photo-frame-subtitle-price,
+.chocolate-subtitle-price{
+  margin-bottom:7px;
+  font-size:10px;
+}
+
+.photo-frame-entries-price,
+.chocolate-entries-price{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+}
+
+.photo-frame-entry-price,
+.chocolate-entry-price{
+  margin:0;
+  padding:7px 8px;
+  border:1px solid #DDE2D6;
+  border-radius:8px;
+  background:#F8F9F5;
+  min-width:0;
+}
+
+.photo-frame-fields-price{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 86px;
+  gap:7px;
+  align-items:center;
+}
+
+.photo-frame-label-wrap-price{
+  min-width:0;
+  display:block;
+}
+
+.photo-frame-label-wrap-price .field-label-price,
+.chocolate-entry-price .field-label-price{
+  margin:0 0 3px;
+  font-size:10px;
+  line-height:1.15;
+  font-weight:650;
+}
+
+.photo-frame-fixed-price{
+  font-size:13px;
+  line-height:1.1;
+  font-weight:800;
+}
+
+.chocolate-fields-price{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 60px 84px 25px;
+  gap:5px;
+  align-items:center;
+}
+
+.chocolate-fields-price > div{
+  min-width:0;
+}
+
+.price-fixed-label-price{
+  min-height:27px;
+  padding:0 6px;
+  border-radius:6px;
+  font-size:11px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.price-fixed-amount-price{
+  justify-content:flex-end;
+  font-size:11px;
+  font-weight:750;
+}
+
+.quantity-stepper-price{
+  grid-template-columns:25px minmax(0,1fr) 25px;
+  min-height:30px;
+  border-radius:7px;
+}
+
+.quantity-stepper-price button{
+  font-size:18px;
+}
+
+.quantity-stepper-price input{
+  font-size:13px;
+}
+
+.remove-chocolate-btn-price{
+  width:25px;
+  height:30px;
+  border-radius:6px;
+  font-size:17px;
+}
+
+.add-chocolate-btn-price{
+  margin-top:7px;
+  padding:7px;
+  font-size:11px;
+}
+
+@media(max-width:620px){
+  .photo-frame-entries-price,
+  .chocolate-entries-price{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<style id="quantity-visible-fix">
+/* Keep selected quantities visible in the center of the stepper. */
+.quantity-stepper-price input.price-input,
+.quantity-stepper-price input.photo-frame-qty-input-price,
+.quantity-stepper-price input.qty-input-price{
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:100% !important;
+  padding:0 !important;
+  margin:0 !important;
+  text-align:center !important;
+  text-indent:0 !important;
+  line-height:1 !important;
+  color:var(--text) !important;
+  -webkit-text-fill-color:var(--text) !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  background:#fff !important;
 }
 </style>
 </head>
@@ -3474,11 +3737,12 @@ const defaultItems=[
     name:"Chocolates",
     chocolate:true,
     chocolates:[
-      {
-        brand:"",
-        qty:1,
-        unitPrice:""
-      }
+      {brand:"Diary Milk",qty:0,unitPrice:10,presetPrice:10},
+      {brand:"KitKat",qty:0,unitPrice:10,presetPrice:10},
+      {brand:"KitKat",qty:0,unitPrice:25,presetPrice:25},
+      {brand:"Diary Milk Silk",qty:0,unitPrice:222,presetPrice:222},
+      {brand:"Galaxy",qty:0,unitPrice:60,presetPrice:60},
+      {brand:"Snickers",qty:0,unitPrice:10,presetPrice:10}
     ]
   },
 
@@ -3826,17 +4090,21 @@ function createPhotoFrameSubmenu(item={}){
                 </div>
               </div>
 
-              <input
-                class="price-input photo-frame-qty-input-price"
-                data-frame-size="${option.key}"
-                type="number"
-                inputmode="numeric"
-                min="0"
-                step="1"
-                value="${escapeHtml(frames[option.key]??"")}"
-                placeholder="Qty"
-                oninput="updatePreview()"
-              >
+              <div class="quantity-stepper-price">
+                <button type="button" aria-label="Decrease ${escapeHtml(option.label)} quantity" onclick="adjustQuantity(this,-1)">−</button>
+                <input
+                  class="price-input photo-frame-qty-input-price"
+                  data-frame-size="${option.key}"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  step="1"
+                  value="${escapeHtml(frames[option.key]??"")}"
+                  placeholder="0"
+                  oninput="updatePreview()"
+                >
+                <button type="button" aria-label="Increase ${escapeHtml(option.label)} quantity" onclick="adjustQuantity(this,1)">+</button>
+              </div>
 
             </div>
 
@@ -3860,13 +4128,7 @@ function createChocolateSubmenu(item={}){
   const chocolates=
     item.chocolates&&item.chocolates.length
       ?item.chocolates
-      :[
-        {
-          brand:item.brand||"",
-          qty:item.qty||1,
-          unitPrice:item.unitPrice??item.price??""
-        }
-      ];
+      :[{brand:item.brand||"",qty:item.qty||1,unitPrice:item.unitPrice??item.price??""}];
 
   return`
 
@@ -3878,90 +4140,93 @@ function createChocolateSubmenu(item={}){
 
       <div class="chocolate-entries-price">
 
-        ${chocolates.map(chocolate=>`
+        ${chocolates.map(chocolate=>{
+          const presetPrice=Number(chocolate.presetPrice);
+          const isPreset=Number.isFinite(presetPrice)&&presetPrice>0;
+          const brand=chocolate.brand||"";
+          const unitPrice=isPreset?presetPrice:(chocolate.unitPrice??"");
 
-          <div class="chocolate-entry-price">
+          return`
+
+          <div class="chocolate-entry-price" ${isPreset?`data-preset-price="${presetPrice}"`:""}>
 
             <div class="chocolate-fields-price">
 
               <div>
-
                 <div class="field-label-price">
-                  Brand / Type
+                  ${isPreset?escapeHtml(brand):"Brand / Type"}
                 </div>
 
-                <input
+                ${isPreset
+                  ?`<div class="price-fixed-label-price">${escapeHtml(brand)}</div>`
+                  :`<input
                   class="price-input brand-input-price"
                   type="text"
-                  value="${escapeHtml(chocolate.brand||"")}"
+                  value="${escapeHtml(brand)}"
                   placeholder="e.g. Dairy Milk"
                   oninput="updatePreview()"
-                >
-
+                >`}
               </div>
 
               <div>
-
-                <div class="field-label-price">
-                  Quantity
-                </div>
-
-                <input
-                  class="price-input qty-input-price"
-                  type="number"
-                  inputmode="numeric"
-                  min="1"
-                  value="${Number(chocolate.qty)>0?Number(chocolate.qty):1}"
-                  oninput="updatePreview()"
-                >
-
-              </div>
-
-              <div>
-
                 <div class="field-label-price">
                   Unit Price
                 </div>
-
-                <input
+                ${isPreset
+                  ?`<div class="price-fixed-label-price price-fixed-amount-price">₹${formatMoney(unitPrice)}</div>`
+                  :`<input
                   class="price-input unit-price-input-price"
                   type="number"
                   inputmode="decimal"
                   min="0"
-                  value="${escapeHtml(chocolate.unitPrice??"")}"
+                  value="${escapeHtml(unitPrice)}"
                   placeholder="₹"
                   oninput="updatePreview()"
-                >
-
+                >`}
               </div>
 
-              <button
-                class="remove-chocolate-btn-price"
-                type="button"
-                onclick="removeChocolate(this)"
-              >
-                ×
-              </button>
+              <div>
+                <div class="field-label-price">Quantity</div>
+                <div class="quantity-stepper-price">
+                  <button type="button" aria-label="Decrease ${escapeHtml(brand||"chocolate")} quantity" onclick="adjustQuantity(this,-1)">−</button>
+                  <input
+                    class="price-input qty-input-price"
+                    type="number"
+                    inputmode="numeric"
+                    min="0"
+                    step="1"
+                    value="${Number(chocolate.qty)>0?Number(chocolate.qty):""}"
+                    placeholder="0"
+                    oninput="updatePreview()"
+                  >
+                  <button type="button" aria-label="Increase ${escapeHtml(brand||"chocolate")} quantity" onclick="adjustQuantity(this,1)">+</button>
+                </div>
+              </div>
+
+              ${isPreset?"":`<button class="remove-chocolate-btn-price" type="button" onclick="removeChocolate(this)">×</button>`}
 
             </div>
 
           </div>
 
-        `).join("")}
+        `}).join("")}
 
       </div>
 
-      <button
-        class="add-chocolate-btn-price"
-        type="button"
-        onclick="addChocolate(this)"
-      >
-        + Add Chocolate
-      </button>
+      <button class="add-chocolate-btn-price" type="button" onclick="addChocolate(this)">+ Add Chocolate</button>
 
     </div>
 
   `;
+}
+
+function adjustQuantity(button,delta){
+  const stepper=button.closest(".quantity-stepper-price");
+  const input=stepper?.querySelector("input");
+  if(!input)return;
+  const current=Number(input.value)||0;
+  input.value=String(Math.max(0,Math.floor(current)+delta));
+  updatePreview();
 }
 
 function addChocolate(button){
@@ -4010,14 +4275,19 @@ function addChocolate(button){
           Quantity
         </div>
 
-        <input
-          class="price-input qty-input-price"
-          type="number"
-          inputmode="numeric"
-          min="1"
-          value="1"
-          oninput="updatePreview()"
-        >
+        <div class="quantity-stepper-price">
+          <button type="button" aria-label="Decrease custom chocolate quantity" onclick="adjustQuantity(this,-1)">−</button>
+          <input
+            class="price-input qty-input-price"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            step="1"
+            value="1"
+            oninput="updatePreview()"
+          >
+          <button type="button" aria-label="Increase custom chocolate quantity" onclick="adjustQuantity(this,1)">+</button>
+        </div>
 
       </div>
 
@@ -4475,7 +4745,11 @@ function getItems(){
           const brand=
             entry.querySelector(
               ".brand-input-price"
-            )?.value.trim()||"";
+            )?.value.trim()||
+            entry.querySelector(
+              ".price-fixed-label-price"
+            )?.textContent.trim()||
+            "";
 
           const qtyValue=
             Number(
@@ -4484,12 +4758,15 @@ function getItems(){
               )?.value
             );
 
+          const isPreset=Boolean(entry.dataset.presetPrice);
+
           const qty=
-            qtyValue>0
-              ?qtyValue
-              :1;
+            isPreset
+              ?(qtyValue>0?qtyValue:0)
+              :(qtyValue>0?qtyValue:1);
 
           const rawUnitPrice=
+            entry.dataset.presetPrice||
             entry.querySelector(
               ".unit-price-input-price"
             )?.value||"";
@@ -4583,8 +4860,8 @@ function updatePreview(){
   items.forEach(item=>{
 
     if(
-      item.photoFrame&&
-      item.pricePending
+      (item.photoFrame&&item.pricePending)||
+      (item.chocolate&&item.qty<=0)
     ){
       return;
     }
@@ -4833,7 +5110,10 @@ function getPriceListEditorData(){
             brand:
               entry.querySelector(
                 ".brand-input-price"
-              )?.value.trim()||"",
+              )?.value.trim()||
+              entry.querySelector(
+                ".price-fixed-label-price"
+              )?.textContent.trim()||"",
 
             qty:
               Number(
@@ -4849,9 +5129,12 @@ function getPriceListEditorData(){
                 :1,
 
             unitPrice:
+              entry.dataset.presetPrice||
               entry.querySelector(
                 ".unit-price-input-price"
-              )?.value||""
+              )?.value||"",
+
+            ...(entry.dataset.presetPrice?{presetPrice:Number(entry.dataset.presetPrice)}:{})
 
           }));
 
