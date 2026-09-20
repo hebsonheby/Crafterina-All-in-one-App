@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#AEB99A">
 <title>Craft Crafterina - All in One App</title>
 
@@ -1619,6 +1619,12 @@ button,input,select,textarea{font:inherit}
 }
 </style>
 
+<style id="no-double-tap-zoom-fix">
+/* Prevent accidental double-tap zoom while keeping normal touch scrolling. */
+html, body{
+  touch-action:manipulation;
+}
+</style>
 <style id="quantity-visible-fix">
 /* Keep selected quantities visible in the center of the stepper. */
 .quantity-stepper-price input.price-input,
@@ -4718,6 +4724,11 @@ function getItems(){
           ?Math.floor(qtyValue)
           :0;
 
+        // Only include a frame when its quantity is explicitly greater than zero.
+        // This prevents an unselected/default frame (such as A4 ₹199) from
+        // appearing in the customer preview.
+        if(qty<=0)return;
+
         items.push({
           name,
           photoFrame:true,
@@ -4727,7 +4738,7 @@ function getItems(){
           unitPrice:option.price,
           price:qty*option.price,
           total:qty*option.price,
-          pricePending:qty===0
+          pricePending:false
         });
 
       });
@@ -4873,7 +4884,7 @@ function updatePreview(){
     if(item.photoFrame){
 
       message+=
-        `🖼️ Photo Frame - ${item.frameLabel} × ${item.qty} — ₹${formatMoney(item.total)}\n`;
+        `🖼️ Photo Frame - ${item.frameLabel}${Number(item.qty)>1?` × ${item.qty}`:""} — ₹${formatMoney(item.total)}\n`;
 
     }
 
