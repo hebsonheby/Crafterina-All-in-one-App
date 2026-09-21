@@ -2300,10 +2300,14 @@ html, body{
       Saved Invoices History
     </h3>
 
-    <div
-      id="all-time-stats"
-      class="invoice-all-time-stats"
-    ></div>
+    <div id="monthly-stats" class="invoice-all-time-stats" style="display:none;">
+      <h4>📅 Monthly Breakdown</h4>
+      <div style="margin:8px 0 10px;">
+        <label for="monthly-stats-month" style="font-size:.82rem;color:#777;">Select month</label>
+        <select id="monthly-stats-month" onchange="updateMonthlyStatsFromSelection()" style="width:100%;margin-top:4px;padding:8px;border:1px solid #ddd;border-radius:8px;background:#fff;"></select>
+      </div>
+      <div id="monthly-stats-values"></div>
+    </div>
 
     <div
       id="history-list"
@@ -3744,10 +3748,8 @@ const defaultItems=[
     chocolate:true,
     chocolates:[
       {brand:"Diary Milk",qty:0,unitPrice:10,presetPrice:10},
-      {brand:"KitKat",qty:0,unitPrice:10,presetPrice:10},
-      {brand:"KitKat",qty:0,unitPrice:25,presetPrice:25},
-      {brand:"Diary Milk Silk",qty:0,unitPrice:222,presetPrice:222},
-      {brand:"Galaxy",qty:0,unitPrice:60,presetPrice:60},
+      {brand:"Diary Milk Crispello",qty:0,unitPrice:10,presetPrice:10},
+      {brand:"Diary Milk Silk",qty:0,unitPrice:230,presetPrice:230},
       {brand:"Snickers",qty:0,unitPrice:10,presetPrice:10}
     ]
   },
@@ -4724,11 +4726,6 @@ function getItems(){
           ?Math.floor(qtyValue)
           :0;
 
-        // Only include a frame when its quantity is explicitly greater than zero.
-        // This prevents an unselected/default frame (such as A4 ₹199) from
-        // appearing in the customer preview.
-        if(qty<=0)return;
-
         items.push({
           name,
           photoFrame:true,
@@ -4738,7 +4735,7 @@ function getItems(){
           unitPrice:option.price,
           price:qty*option.price,
           total:qty*option.price,
-          pricePending:false
+          pricePending:qty===0
         });
 
       });
@@ -6360,7 +6357,8 @@ async function renderInvoiceHistory(){
     const history=await getInvoiceHistory();
     if(history.length===0){
       container.innerHTML=`<p style="font-size:.85rem;color:#777;">No saved invoices yet.</p>`;
-      document.getElementById("all-time-stats").style.display="none";
+      const allTimeStats=document.getElementById("all-time-stats");
+    if(allTimeStats)allTimeStats.style.display="none";
       return;
     }
     container.innerHTML=history.map(record=>`
@@ -6377,11 +6375,13 @@ async function renderInvoiceHistory(){
         </div>
       </div>
     `).join("");
-    updateAllTimeStats(history);
+    window.invoiceHistoryCache=history;
+    updateMonthlyStats(history);
   }catch(error){
     console.error("Unable to load invoice history:",error);
     container.innerHTML=`<p style="font-size:.85rem;color:#b44;">Unable to load saved invoices. Please check your connection and try again.</p>`;
-    document.getElementById("all-time-stats").style.display="none";
+    const allTimeStats=document.getElementById("all-time-stats");
+    if(allTimeStats)allTimeStats.style.display="none";
   }
 }
 
@@ -6396,6 +6396,53 @@ function updateAllTimeStats(history){
     <div class="invoice-profit-row"><span>Cost:</span><span>₹${formatMoney(cost)}</span></div>
     <div class="invoice-profit-row invoice-profit-total"><span>Profit:</span><span>₹${formatMoney(profit)}</span></div>`;
   stats.style.display="block";
+}
+
+function updateMonthlyStats(history){
+  const box=document.getElementById("monthly-stats");
+  const select=document.getElementById("monthly-stats-month");
+  if(!box||!select||!history.length){if(box)box.style.display="none";return;}
+  const years=[...new Set(history.map(record=>{
+    const d=new Date(record.date||record.invoiceDate||record.created_at||"");
+    return isNaN(d)?null:d.getFullYear();
+  }).filter(Boolean))].sort((a,b)=>b-a);
+  const fallbackYear=new Date().getFullYear();
+  if(!years.length)years.push(fallbackYear);
+  const months=[];
+  years.forEach(year=>{
+    for(let month=12;month>=1;month--){
+      months.push(`${year}-${String(month).padStart(2,"0")}`);
+    }
+  });
+  const previous=select.value;
+  select.innerHTML=months.map(month=>{
+    const [year,mon]=month.split("-");
+    const label=new Date(Number(year),Number(mon)-1,1).toLocaleDateString("en-US",{month:"long",year:"numeric"});
+    return `<option value="${month}">${label}</option>`;
+  }).join("");
+  select.value=months.includes(previous)?previous:months[0];
+  box.style.display="block";
+  renderMonthlyStats(history,select.value);
+}
+
+function updateMonthlyStatsFromSelection(){
+  const history=Array.isArray(window.invoiceHistoryCache)?window.invoiceHistoryCache:[];
+  const select=document.getElementById("monthly-stats-month");
+  if(select)renderMonthlyStats(history,select.value);
+}
+
+function renderMonthlyStats(history,month){
+  const values=document.getElementById("monthly-stats-values");
+  if(!values)return;
+  let revenue=0,cost=0,count=0;
+  history.forEach(record=>{
+    const d=new Date(record.date||record.invoiceDate||record.created_at||"");
+    const key=isNaN(d)?"":`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    if(key===month){revenue+=Number(record.total)||0;cost+=Number(record.cost)||0;count++;}
+  });
+  values.innerHTML=`<div class="invoice-profit-row"><span>Revenue:</span><span>₹${formatMoney(revenue)}</span></div>
+    <div class="invoice-profit-row"><span>Total Invoices:</span><span>${count}</span></div>
+    <div class="invoice-profit-row invoice-profit-total"><span>Total Profit:</span><span>₹${formatMoney(revenue-cost)}</span></div>`;
 }
 
 function invoiceNumberChanged(){
