@@ -2228,6 +2228,24 @@ html, body{
   <div class="invoice-form-group">
 
     <label>
+      Delivery (₹)
+    </label>
+
+    <input
+      type="number"
+      inputmode="decimal"
+      id="deliveryCharge"
+      class="invoice-input"
+      placeholder="0"
+      value="260"
+      oninput="calculateInvoice()"
+    >
+
+  </div>
+
+  <div class="invoice-form-group">
+
+    <label>
       Advance Paid (₹)
     </label>
 
@@ -2442,6 +2460,18 @@ html, body{
 
       <span id="prevService">
         ₹0
+      </span>
+
+    </div>
+
+    <div class="invoice-summary-row">
+
+      <span>
+        Delivery
+      </span>
+
+      <span id="prevDelivery">
+        ₹260
       </span>
 
     </div>
@@ -3762,6 +3792,11 @@ const defaultItems=[
   {
     name:"Wish Card",
     price:""
+  },
+
+  {
+    name:"Topper",
+    price:40
   }
 ];
 
@@ -6086,6 +6121,13 @@ function calculateInvoice(){
       ).value
     )||0;
 
+  const deliveryCharge=
+    Number(
+      document.getElementById(
+        "deliveryCharge"
+      ).value
+    )||0;
+
   const advance=
     Number(
       document.getElementById(
@@ -6095,7 +6137,8 @@ function calculateInvoice(){
 
   const total=
     subtotal+
-    serviceCharge;
+    serviceCharge+
+    deliveryCharge;
 
   const balance=
     Math.max(
@@ -6131,6 +6174,11 @@ function calculateInvoice(){
     "prevService"
   ).textContent=
     `₹${formatMoney(serviceCharge)}`;
+
+  document.getElementById(
+    "prevDelivery"
+  ).textContent=
+    `₹${formatMoney(deliveryCharge)}`;
 
   document.getElementById(
     "prevTotal"
@@ -6322,8 +6370,9 @@ async function saveInvoiceToHistory(){
     subtotal+=qty*price; totalCost+=qty*cost;
   });
   const serviceCharge=Number(document.getElementById("serviceCharge").value)||0;
+  const deliveryCharge=Number(document.getElementById("deliveryCharge").value)||0;
   const advance=Number(document.getElementById("advancePaid").value)||0;
-  const total=subtotal+serviceCharge;
+  const total=subtotal+serviceCharge+deliveryCharge;
   const invoiceDate=normalizeInvoiceDate(
     currentInvoiceId&&loadedInvoiceDate ? loadedInvoiceDate : getCurrentDate()
   );
